@@ -103,6 +103,9 @@ canvas { display:block; }
 <div id="leftActionMenu"><div style="color:#00ffcc;font-size:12px;padding:6px 16px 8px;">Set Left Click Action:</div><div class="la-item active" onclick="setLeftAction('interact')">Interact (default)</div><div class="la-item" onclick="setLeftAction('timeportal')">Call Time Portal</div><div class="la-item" onclick="setLeftAction('summonvehicle')">Summon Vehicle</div><div class="la-item" onclick="setLeftAction('cloudnybus')">Summon Cloud Nybus</div><div class="la-item" onclick="setLeftAction('hack')">Hack Nearby</div><div class="la-item" onclick="setLeftAction('phone')">Open Phone</div><div class="la-item" onclick="setLeftAction('fasttravel')">Fast Travel</div></div>
 <div id="megaPayout"></div>
 <script>
+window.onerror=function(msg,url,line,col,err){console.error('JS ERROR: '+msg+' at line '+line+':'+col);var d=document.createElement('div');d.style.cssText='position:fixed;top:0;left:0;right:0;background:red;color:white;padding:10px;z-index:9999;font-size:14px;';d.textContent='ERROR: '+msg+' (line '+line+')';document.body.appendChild(d)};
+console.log('SoulIllusions script loaded');
+
 var canvas=document.getElementById('game'),ctx=canvas.getContext('2d');
 var miniCanvas=document.getElementById('minimap'),miniCtx=miniCanvas.getContext('2d');
 var W=window.innerWidth,H=window.innerHeight;canvas.width=W;canvas.height=H;
@@ -165,7 +168,7 @@ if(dx||dy){var l=Math.sqrt(dx*dx+dy*dy);dx=dx/l*speed;dy=dy/l*speed;p.x+=dx;p.y+
 if(game.cloudNybus&&p.onCloud){game.cloudNybus.x=p.x;game.cloudNybus.y=p.y-10}
 game.camera.x=p.x-W/2;game.camera.y=p.y-H/2;game.minute+=0.1;if(game.minute>=60){game.minute=0;game.hour++}if(game.hour>=24){game.hour=0;game.day++;game.time+=3600;dailyIncome()}
 game.time-=0.5;if(game.time<=0){gameOver();return}updateLocation();updateNPCs();updateRobots();updateBlackout();checkNearby();checkNFCContacts();updatePortals();updateMissionNotifications();updateCompanion();proactiveJarvis();updateUI()}
-function dailyIncome(){var total=0;game.ownedProperties.forEach(function(p){game.crypto+=p.income;total+=p.income});if(total>0&&window.jarvisSpeak)jarvisSpeak('Daily income collected: '+total+' INC from your properties.')
+function dailyIncome(){var total=0;game.ownedProperties.forEach(function(p){game.crypto+=p.income;total+=p.income});if(total>0&&window.jarvisSpeak)jarvisSpeak('Daily income collected: '+total+' INC from your properties.')}
 function updateLocation(){for(var i=0;i<DISTRICTS.length;i++){var d=DISTRICTS[i];if(game.player.x>=d.x&&game.player.x<=d.x+d.w&&game.player.y>=d.y&&game.player.y<=d.y+d.h){game.currentLocation=d.name;return}}game.currentLocation='Mega City Streets'}
 function updateNPCs(){game.npcs.forEach(function(n){var dx=n.targetX-n.x,dy=n.targetY-n.y,d=Math.sqrt(dx*dx+dy*dy);if(d<10){var a=Math.random()*Math.PI*2,r=100+Math.random()*300;n.targetX=Math.max(0,Math.min(CITY_SIZE,n.x+Math.cos(a)*r));n.targetY=Math.max(0,Math.min(CITY_SIZE,n.y+Math.sin(a)*r));if(Math.random()<0.3)n.task=NPC_TASKS[Math.floor(Math.random()*NPC_TASKS.length)]}else{n.x+=dx/d*n.speed;n.y+=dy/d*n.speed}})}
 function updateRobots(){game.robots.forEach(function(r){if(game.blackoutReboot){r.chasing=false;r.x+=Math.random()*4-2;r.y+=Math.random()*4-2;return}if(game.blackout){var dx=game.player.x-r.x,dy=game.player.y-r.y,d=Math.sqrt(dx*dx+dy*dy);if(d<r.catchRadius){arrestPlayer();return}if(d<r.alertRadius||r.chasing){r.chasing=true;r.x+=dx/d*r.speed;r.y+=dy/d*r.speed}else{var px=r.patrolX-r.x,py=r.patrolY-r.y,pd=Math.sqrt(px*px+py*py);if(pd>10){r.x+=px/pd*r.speed*0.5;r.y+=py/pd*r.speed*0.5}}}else{r.chasing=false;var px=r.patrolX-r.x,py=r.patrolY-r.y,pd=Math.sqrt(px*px+py*py);if(pd>10){r.x+=px/pd*r.speed*0.3;r.y+=py/pd*r.speed*0.3}}})}
@@ -658,6 +661,7 @@ jarvisRegisterCommand('rusty status',function(){if(!game.companion)return'Rusty 
 
 // --- Game Start ---
 function startGame(){
+console.log('startGame called');
 startIntro();
 }
 
