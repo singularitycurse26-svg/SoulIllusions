@@ -40,9 +40,14 @@ AGENT_DIR.mkdir(exist_ok=True)
 (AGENT_DIR / "logs").mkdir(exist_ok=True)
 
 DEFAULT_CONFIG = {
-    "mode": "local",
+    "mode": "server",
     "local_model": "qwen2.5:7b",
     "local_inference_url": "http://localhost:11434",
+    "server_model": "qwen2.5:14b",
+    "server_inference_url": "",
+    "server_api_key": "",
+    "allow_user_local": True,
+    "user_llm_override": None,
     "api_keys": {
         "anthropic": "",
         "openai": "",
@@ -153,20 +158,35 @@ init_db()
 
 # --- LLM Interface (Local + Cloud) ---
 class LLMInterface:
-    """Unified LLM interface — works with local Ollama or cloud APIs."""
+    """Unified LLM interface — works with local Ollama, remote GPU backend, or cloud APIs.
+    
+    Modes:
+    - 'local': User's computer runs Ollama (free, no GPU needed for small models)
+    - 'server': GPU backend (Kaggle/Colab) runs Ollama with GPU acceleration
+    - 'cloud': Cloud API (Anthropic/OpenAI) — requires API keys
+    
+    Per-user override: If allow_user_local is True, users can set their own
+    LLM mode to run on their computer instead of the server.
+    """
     
     def __init__(self, config: dict):
         self.config = config
-        self.mode = config.get("mode", "local")
+        self.mode = config.get("mode", "server")
+        # Check for per-user override
+        user_override = config.get("user_llm_override")
+        if user_override and config.get("allow_user_local", True):
+            self.mode = user_override
     
     async def generate(self, prompt: str, system: str = "", max_tokens: int = 4096) -> str:
         if self.mode == "local":
             return await self._generate_local(prompt, system, max_tokens)
+        elif self.mode == "server":
+            return await self._generate_server(prompt, system, max_tokens)
         else:
             return await self._generate_cloud(prompt, system, max_tokens)
     
     async def _generate_local(self, prompt: str, system: str, max_tokens: int) -> str:
-        """Generate using local Ollama/llama.cpp instance."""
+        """Generate using local Ollama/llama.cpp instance on user's computer."""
         url = f"{self.config.get('local_inference_url', 'http://localhost:11434')}/api/generate"
         data = {
             "model": self.config.get("local_model", "qwen2.5:7b"),
@@ -185,6 +205,47 @@ class LLMInterface:
                 return result.get("response", "")
         except Exception as e:
             return f"[Local LLM Error: {e}]"
+    
+    async def _generate_server(self, prompt: str, system: str, max_tokens: int) -> str:
+        """Generate using remote GPU backend (Kaggle/Colab) running Ollama with GPU acceleration."""
+        server_url = self.config.get("server_inference_url", "")
+        if not server_url:
+            # Try to get GPU backend URL from server config
+            try:
+                server_cfg_path = SCRIPT_DIR / "server_config.json"
+                if server_cfg_path.exists():
+                    server_cfg = json.loads(server_cfg_path.read_text())
+                    server_url = server_cfg.get("gpu_backend_url", "")
+            except Exception:
+                pass
+        if not server_url:
+            return "[Server LLM Error: No GPU backend URL configured. Connect a GPU backend first or switch to local mode.]"
+        url = f"{server_url}/api/llm/generate"
+        data = {
+            "model": self.config.get("server_model", "qwen2.5:14b"),
+            "prompt": prompt,
+            "system": system,
+            "stream": False,
+            "options": {"num_predict": max_tokens, "temperature": 0.7}
+        }
+        try:
+            import urllib.request
+            body = json.dumps(data).encode()
+            req = urllib.request.Request(url, data=body, method='POST')
+            req.add_header('Content-Type', 'application/json')
+            api_key = self.config.get("server_api_key", "")
+            if api_key:
+                req.add_header('Authorization', f'Bearer {api_key}')
+            with urllib.request.urlopen(req, timeout=180) as resp:
+                result = json.loads(resp.read().decode())
+                return result.get("response", "")
+        except Exception as e:
+            # Fallback to local if server is unreachable
+            fallback_msg = f"[Server LLM Error: {e}. Falling back to local.]"
+            try:
+                return fallback_msg + "\n" + await self._generate_local(prompt, system, max_tokens)
+            except Exception:
+                return fallback_msg
     
     async def _generate_cloud(self, prompt: str, system: str, max_tokens: int) -> str:
         """Generate using cloud API (Anthropic/OpenAI)."""

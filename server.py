@@ -6014,6 +6014,90 @@ def _get_agent_module():
     except Exception as e:
         return None
 
+@app.post("/api/llm/generate")
+async def llm_generate(request: Request):
+    """Proxy LLM generation to GPU backend running Ollama, or local Ollama, or cloud."""
+    try:
+        body = await request.json()
+        model = body.get("model", "qwen2.5:14b")
+        prompt = body.get("prompt", "")
+        system = body.get("system", "")
+        stream = body.get("stream", False)
+        options = body.get("options", {"num_predict": 4096, "temperature": 0.7})
+        
+        # Try GPU backend first
+        backend_url = config.get("gpu_backend_url", "")
+        if backend_url:
+            try:
+                payload = json.dumps({"model": model, "prompt": prompt, "system": system,
+                                      "stream": stream, "options": options}).encode()
+                req = urllib.request.Request(f"{backend_url}/api/llm/generate", data=payload,
+                                             headers={"Content-Type": "application/json"}, method="POST")
+                with urllib.request.urlopen(req, timeout=180) as resp:
+                    return json.loads(resp.read().decode())
+            except Exception:
+                pass  # Fall through to local
+        
+        # Try local Ollama
+        try:
+            local_url = "http://localhost:11434/api/generate"
+            payload = json.dumps({"model": model, "prompt": prompt, "system": system,
+                                  "stream": stream, "options": options}).encode()
+            req = urllib.request.Request(local_url, data=payload,
+                                         headers={"Content-Type": "application/json"}, method="POST")
+            with urllib.request.urlopen(req, timeout=120) as resp:
+                return json.loads(resp.read().decode())
+        except Exception as e:
+            return JSONResponse({"error": f"No LLM available (GPU backend and local Ollama both failed): {e}"}, status_code=503)
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+@app.post("/api/agent/llm-mode")
+async def agent_llm_mode(request: Request):
+    """Switch agent LLM mode: server (GPU backend), local (user's computer), or cloud."""
+    try:
+        body = await request.json()
+        mode = body.get("mode", "server")
+        if mode not in ("server", "local", "cloud"):
+            return JSONResponse({"error": "Mode must be: server, local, or cloud"}, status_code=400)
+        
+        # Update agent config
+        cfg_path = APP_DIR / "agent_config.json"
+        if cfg_path.exists():
+            cfg = json.loads(cfg_path.read_text())
+        else:
+            cfg = {}
+        cfg["mode"] = mode
+        if mode == "local":
+            cfg["user_llm_override"] = "local"
+        elif mode == "server":
+            cfg["user_llm_override"] = None
+        elif mode == "cloud":
+            cfg["user_llm_override"] = "cloud"
+        cfg_path.write_text(json.dumps(cfg, indent=2))
+        return {"status": "ok", "mode": mode}
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+@app.get("/api/agent/llm-mode")
+async def agent_llm_mode_get():
+    """Get current LLM mode and available options."""
+    cfg_path = APP_DIR / "agent_config.json"
+    if cfg_path.exists():
+        cfg = json.loads(cfg_path.read_text())
+    else:
+        cfg = {"mode": "server", "allow_user_local": True}
+    backend_url = config.get("gpu_backend_url", "")
+    return {
+        "mode": cfg.get("mode", "server"),
+        "allow_user_local": cfg.get("allow_user_local", True),
+        "gpu_backend_connected": bool(backend_url),
+        "gpu_backend_url": backend_url,
+        "server_model": cfg.get("server_model", "qwen2.5:14b"),
+        "local_model": cfg.get("local_model", "qwen2.5:7b"),
+        "cloud_model": cfg.get("cloud_model", "claude-sonnet-4-20250514")
+    }
+
 @app.get("/api/agent/status")
 async def agent_status():
     mod = _get_agent_module()
@@ -6281,6 +6365,274 @@ async def verify_kaggle_all():
     try:
         results = mod.verify_all_kaggle_accounts()
         return {"results": results}
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+
+# ==================== BOOK WRITER API ====================
+def _get_books_module():
+    try:
+        return _importlib.import_module("book_writer")
+    except Exception:
+        return None
+
+@app.post("/api/books/create")
+async def books_create(request: Request):
+    mod = _get_books_module()
+    if not mod:
+        return JSONResponse({"error": "book_writer.py not available"}, status_code=503)
+    try:
+        body = await request.json()
+        mgr = mod.get_book_manager()
+        return mgr.create_book(
+            body.get("title", "Untitled"),
+            body.get("description", ""),
+            body.get("genre", "fiction"),
+            body.get("category", "original"),
+            body.get("target_word_count", 50000),
+            body.get("tags", ""),
+            body.get("source_project", "")
+        )
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+@app.get("/api/books/list")
+async def books_list(limit: int = 50, category: str = ""):
+    mod = _get_books_module()
+    if not mod:
+        return {"books": []}
+    try:
+        mgr = mod.get_book_manager()
+        return {"books": mgr.list_books(limit, category)}
+    except Exception as e:
+        return {"books": [], "error": str(e)}
+
+@app.get("/api/books/{book_id}")
+async def books_get(book_id: int):
+    mod = _get_books_module()
+    if not mod:
+        return JSONResponse({"error": "book_writer.py not available"}, status_code=503)
+    try:
+        mgr = mod.get_book_manager()
+        book = mgr.get_book(book_id)
+        if not book:
+            return JSONResponse({"error": "Book not found"}, status_code=404)
+        chapters = mgr.get_chapters(book_id)
+        characters = mgr.get_characters(book_id)
+        world_elements = mgr.get_world_elements(book_id)
+        return {"book": book, "chapters": chapters, "characters": characters, "world_elements": world_elements}
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+@app.delete("/api/books/{book_id}")
+async def books_delete(book_id: int):
+    mod = _get_books_module()
+    if not mod:
+        return JSONResponse({"error": "book_writer.py not available"}, status_code=503)
+    try:
+        mgr = mod.get_book_manager()
+        return mgr.delete_book(book_id)
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+@app.post("/api/books/{book_id}/chapters")
+async def books_add_chapter(book_id: int, request: Request):
+    mod = _get_books_module()
+    if not mod:
+        return JSONResponse({"error": "book_writer.py not available"}, status_code=503)
+    try:
+        body = await request.json()
+        mgr = mod.get_book_manager()
+        return mgr.add_chapter(
+            book_id,
+            body.get("chapter_number", 1),
+            body.get("title", ""),
+            body.get("content", ""),
+            body.get("target_word_count", 3000),
+            body.get("notes", "")
+        )
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+@app.put("/api/books/chapters/{chapter_id}")
+async def books_update_chapter(chapter_id: int, request: Request):
+    mod = _get_books_module()
+    if not mod:
+        return JSONResponse({"error": "book_writer.py not available"}, status_code=503)
+    try:
+        body = await request.json()
+        mgr = mod.get_book_manager()
+        return mgr.update_chapter(
+            chapter_id,
+            body.get("title"),
+            body.get("content"),
+            body.get("notes"),
+            body.get("target_word_count")
+        )
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+@app.get("/api/books/chapters/{chapter_id}")
+async def books_get_chapter(chapter_id: int):
+    mod = _get_books_module()
+    if not mod:
+        return JSONResponse({"error": "book_writer.py not available"}, status_code=503)
+    try:
+        mgr = mod.get_book_manager()
+        ch = mgr.get_chapter(chapter_id)
+        if not ch:
+            return JSONResponse({"error": "Chapter not found"}, status_code=404)
+        return ch
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+@app.post("/api/books/{book_id}/characters")
+async def books_add_character(book_id: int, request: Request):
+    mod = _get_books_module()
+    if not mod:
+        return JSONResponse({"error": "book_writer.py not available"}, status_code=503)
+    try:
+        body = await request.json()
+        mgr = mod.get_book_manager()
+        return mgr.add_character(
+            book_id,
+            body.get("name", "Unknown"),
+            body.get("description", ""),
+            body.get("role", "supporting"),
+            body.get("personality", ""),
+            body.get("appearance", ""),
+            body.get("backstory", ""),
+            body.get("relationships", ""),
+            body.get("arc", "")
+        )
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+@app.post("/api/books/{book_id}/agent-write")
+async def books_agent_write(book_id: int, request: Request):
+    """Have an AI agent write a chapter for the book."""
+    mod = _get_books_module()
+    if not mod:
+        return JSONResponse({"error": "book_writer.py not available"}, status_code=503)
+    try:
+        body = await request.json()
+        mgr = mod.get_book_manager()
+        return await mgr.agent_write_chapter(
+            book_id,
+            body.get("chapter_number", 1),
+            body.get("prompt", ""),
+            body.get("agent_name", "SoulIllusions Agent"),
+            body.get("context_chapters", 2)
+        )
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+@app.post("/api/books/chapters/{chapter_id}/agent-continue")
+async def books_agent_continue(chapter_id: int, request: Request):
+    """Have an AI agent continue writing a chapter."""
+    mod = _get_books_module()
+    if not mod:
+        return JSONResponse({"error": "book_writer.py not available"}, status_code=503)
+    try:
+        body = await request.json()
+        mgr = mod.get_book_manager()
+        return await mgr.agent_continue_chapter(
+            chapter_id,
+            body.get("direction", ""),
+            body.get("agent_name", "SoulIllusions Agent")
+        )
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+@app.post("/api/books/chapters/{chapter_id}/agent-correct")
+async def books_agent_correct(chapter_id: int):
+    """Have an AI agent fix spelling and grammar."""
+    mod = _get_books_module()
+    if not mod:
+        return JSONResponse({"error": "book_writer.py not available"}, status_code=503)
+    try:
+        mgr = mod.get_book_manager()
+        return await mgr.agent_correct_chapter(chapter_id)
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+@app.post("/api/books/{book_id}/analyze")
+async def books_analyze(book_id: int):
+    """Run book analysis engine for text-to-video and text-to-game pipelines."""
+    mod = _get_books_module()
+    if not mod:
+        return JSONResponse({"error": "book_writer.py not available"}, status_code=503)
+    try:
+        mgr = mod.get_book_manager()
+        return await mgr.analysis_engine.analyze_book(book_id)
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+@app.get("/api/books/{book_id}/for-video")
+async def books_for_video(book_id: int):
+    """Get book data formatted for text-to-video pipeline."""
+    mod = _get_books_module()
+    if not mod:
+        return JSONResponse({"error": "book_writer.py not available"}, status_code=503)
+    try:
+        mgr = mod.get_book_manager()
+        return mgr.get_book_for_video(book_id)
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+@app.get("/api/books/{book_id}/for-game")
+async def books_for_game(book_id: int):
+    """Get book data formatted for text-to-game pipeline."""
+    mod = _get_books_module()
+    if not mod:
+        return JSONResponse({"error": "book_writer.py not available"}, status_code=503)
+    try:
+        mgr = mod.get_book_manager()
+        return mgr.get_book_for_game(book_id)
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+@app.post("/api/books/{book_id}/audiobook")
+async def books_audiobook(book_id: int, request: Request):
+    """Generate audiobook for a book or specific chapter."""
+    mod = _get_books_module()
+    if not mod:
+        return JSONResponse({"error": "book_writer.py not available"}, status_code=503)
+    try:
+        body = await request.json() if request.headers.get("content-type") == "application/json" else {}
+        mgr = mod.get_book_manager()
+        chapter_id = body.get("chapter_id")
+        voice = body.get("voice", "default")
+        if chapter_id:
+            return await mgr.audiobook_gen.generate_chapter_audio(book_id, chapter_id, voice)
+        else:
+            return await mgr.audiobook_gen.generate_book_audio(book_id, voice)
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+@app.get("/api/books/{book_id}/audiobooks")
+async def books_audiobook_list(book_id: int):
+    """List audiobook files for a book."""
+    mod = _get_books_module()
+    if not mod:
+        return {"audiobooks": []}
+    try:
+        mgr = mod.get_book_manager()
+        return {"audiobooks": mgr.audiobook_gen.get_audiobooks(book_id)}
+    except Exception as e:
+        return {"audiobooks": [], "error": str(e)}
+
+@app.post("/api/books/{book_id}/export")
+async def books_export(book_id: int, request: Request):
+    """Export book to file."""
+    mod = _get_books_module()
+    if not mod:
+        return JSONResponse({"error": "book_writer.py not available"}, status_code=503)
+    try:
+        body = await request.json() if request.headers.get("content-type") == "application/json" else {}
+        fmt = body.get("format", "txt")
+        mgr = mod.get_book_manager()
+        return mgr.export_book(book_id, fmt)
     except Exception as e:
         return JSONResponse({"error": str(e)}, status_code=500)
 

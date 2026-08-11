@@ -16,3 +16,5 @@ verify_config.json
 agent_config.json
 kaggle_accounts.json
 *.jsonl
+book_library/audiobooks/
+book_library/exports/
