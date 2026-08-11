@@ -60,7 +60,7 @@ canvas { display:block; }
   </div>
 </div>
 <canvas id="minimap" width="180" height="180"></canvas>
-<div id="hudPanel"><div>WASD/Arrows: Move | E: Interact | Space: Action</div><div>V: Vehicle | B: Buy Property | H: Hack</div></div>
+<div id="hudPanel"><div>WASD/Arrows: Move | E: Interact | Space: Action</div><div>V: Vehicle | B: Buy Property | H: Hack | P: Phone | F: Fast Travel | C: Cloud Nybus</div></div>
 <div id="vehicleHud">Vehicle: None (Press V to summon)</div>
 <div id="interactionPrompt">Press E to interact</div>
 <div id="dialogueBox"><div id="dialogueTitle">Title</div><div id="dialogueText">Text</div><button id="dialogueClose" onclick="closeDialogue()">Close</button></div>
@@ -73,14 +73,15 @@ var canvas=document.getElementById('game'),ctx=canvas.getContext('2d');
 var miniCanvas=document.getElementById('minimap'),miniCtx=miniCanvas.getContext('2d');
 var W=window.innerWidth,H=window.innerHeight;canvas.width=W;canvas.height=H;
 var CITY_SIZE=8000;
-var game={running:false,paused:false,player:{x:3200,y:3200,speed:3,health:100,angle:0,onVehicle:null},camera:{x:3200,y:3200},time:86400,crypto:0,day:1,hour:8,minute:0,blackout:false,blackoutTimer:0,nextBlackout:14400,robots:[],npcs:[],vehicles:[],properties:[],ownedProperties:[],currentLocation:'Downtown',schoolEnrolled:{high:false,college:false},collegeMajor:null,grades:{high:{},college:{}},businesses:[],cryptoOwned:null,hackingLevel:1,notoriety:0,keys:0,inventory:[]};
+var game={running:false,paused:false,player:{x:3200,y:3200,speed:3,health:100,angle:0,onVehicle:null,onCloud:false},camera:{x:3200,y:3200},time:86400,crypto:0,day:1,hour:8,minute:0,blackout:false,blackoutTimer:0,blackoutReboot:false,blackoutRebootTimer:0,nextBlackout:14400,robots:[],npcs:[],vehicles:[],properties:[],ownedProperties:[],currentLocation:'Downtown',schoolEnrolled:{high:false,college:false},collegeMajor:null,grades:{high:{},college:{}},businesses:[],cryptoOwned:null,hackingLevel:1,notoriety:0,keys:0,inventory:[],contacts:[],portals:[],hyperloopStations:[],phoneMessages:[],missionNotifications:[],skyCityAccess:false,flyingVehicles:[],cloudNybus:null,createdKeys:[]};
 var DISTRICTS=[
 {name:'Keyhouse',x:200,y:200,w:600,h:600,color:'#1a2a1a'},{name:'Downtown',x:2800,y:2800,w:2400,h:2400,color:'#1a1a2e'},
 {name:'High School',x:1000,y:3200,w:800,h:600,color:'#2a1a1a'},{name:'College',x:1000,y:4200,w:1000,h:800,color:'#1a1a2a'},
 {name:'Casino District',x:5200,y:2000,w:800,h:600,color:'#2a2a1a'},{name:'Central Brain',x:3800,y:3800,w:400,h:400,color:'#0a1a2a'},
 {name:'Underground',x:3800,y:4200,w:800,h:600,color:'#0a0a1a'},{name:'Courthouse',x:3400,y:2400,w:400,h:300,color:'#1a2a2a'},
 {name:'Residential',x:2000,y:1200,w:1600,h:1200,color:'#1a2a1a'},{name:'Industrial',x:5200,y:4000,w:1200,h:1000,color:'#2a2a2a'},
-{name:'Entertainment',x:4800,y:3200,w:800,h:500,color:'#2a1a2a'},{name:'Hover Park',x:2400,y:4800,w:800,h:400,color:'#0a2a1a'}
+{name:'Entertainment',x:4800,y:3200,w:800,h:500,color:'#2a1a2a'},{name:'Hover Park',x:2400,y:4800,w:800,h:400,color:'#0a2a1a'},
+{name:'Sky City',x:5800,y:200,w:1600,h:800,color:'#0a0a3a'},{name:'Hyperloop Hub',x:3000,y:3600,w:300,h:200,color:'#0a2a2a'}
 ];
 var BUILDINGS=[
 {id:'keyhouse',x:350,y:350,w:200,h:180,type:'keyhouse',name:'Keyhouse Manor'},{id:'keycave',x:420,y:580,w:120,h:100,type:'cave',name:'The Cave'},
@@ -89,14 +90,20 @@ var BUILDINGS=[
 {id:'college',x:1200,y:4300,w:350,h:250,type:'college',name:'Mega City University'},{id:'casino',x:5400,y:2150,w:200,h:180,type:'casino',name:'Lucky Star Casino'},
 {id:'brain',x:3900,y:3900,w:200,h:200,type:'brain',name:'Central Computer Brain'},{id:'underground',x:4000,y:4300,w:150,h:120,type:'underground',name:'Underground City Entrance'},
 {id:'courthouse',x:3500,y:2480,w:200,h:160,type:'courthouse',name:'Mega City Courthouse'},{id:'hoverpark',x:2600,y:4900,w:200,h:150,type:'hoverpark',name:'Hover Vehicle Station'},
-{id:'bar',x:4900,y:3300,w:100,h:80,type:'bar',name:'Neon Bar'},{id:'club',x:5100,y:3350,w:120,h:100,type:'club',name:'Pulse Club'}
+{id:'bar',x:4900,y:3300,w:100,h:80,type:'bar',name:'Neon Bar'},{id:'club',x:5100,y:3350,w:120,h:100,type:'club',name:'Pulse Club'},
+{id:'skycity',x:6200,y:400,w:250,h:200,type:'skycity',name:'Sky City Elevator'},{id:'hyperloop',x:3050,y:3650,w:200,h:150,type:'hyperloop',name:'Hyperloop Hub'},
+{id:'keycliff',x:520,y:700,w:100,h:80,type:'keycliff',name:'Cliff Cave Entrance'},{id:'keytunnel',x:600,y:780,w:80,h:60,type:'keytunnel',name:'The Tunnel'}
 ];
 var STREETS=[];
 for(var sx=0;sx<CITY_SIZE;sx+=200)STREETS.push({x:sx,y:0,w:30,h:CITY_SIZE,h:false});
 for(var sy=0;sy<CITY_SIZE;sy+=200)STREETS.push({x:0,y:sy,w:CITY_SIZE,h:30,h:true});
-var VEHICLE_TYPES=[{name:'Hover Bike',speed:8,cost:500,color:'#00ffcc',size:30},{name:'Hover Board',speed:6,cost:200,color:'#ff6600',size:25},{name:'Hover Car',speed:10,cost:2000,color:'#4488ff',size:45}];
+var VEHICLE_TYPES=[{name:'Hover Bike',speed:8,cost:500,color:'#00ffcc',size:30},{name:'Hover Board',speed:6,cost:200,color:'#ff6600',size:25},{name:'Hover Car',speed:10,cost:2000,color:'#4488ff',size:45},{name:'Flying Hover Bike',speed:12,cost:5000,color:'#ff00ff',size:30,flying:true},{name:'Flying Hover Car',speed:15,cost:15000,color:'#00ffff',size:45,flying:true}];
+var CLOUD_NYBUS_COST=3000;
+var HYPERLOOP_STATIONS=[{name:'Downtown',x:3050,y:3650},{name:'Keyhouse',x:350,y:400},{name:'High School',x:1200,y:3300},{name:'College',x:1200,y:4300},{name:'Casino',x:5400,y:2150},{name:'Sky City',x:6200,y:400},{name:'Industrial',x:5500,y:4200},{name:'Entertainment',x:4900,y:3300}];
+var FAST_TRAVEL_POINTS=[{name:'Downtown',x:3200,y:3200},{name:'Keyhouse',x:350,y:350},{name:'High School',x:1200,y:3300},{name:'College',x:1200,y:4300},{name:'Casino',x:5400,y:2150},{name:'Sky City',x:6200,y:400},{name:'Underground',x:4000,y:4300},{name:'Hover Park',x:2600,y:4900}];
 var NPC_NAMES=['Alex','Sam','Jordan','Taylor','Morgan','Riley','Casey','Jamie','Drew','Quinn','Sage','River','Sky','Phoenix','Kai','Nova','Zane','Iris','Luna','Orion'];
-var NPC_TASKS=['going to school','heading to work','shopping','walking home','going to casino','heading to college','looking around','talking to friends','going to the bar','heading underground'];
+var NPC_TASKS=['going to school','heading to work','shopping','walking home','going to casino','heading to college','looking around','talking to friends','going to the bar','heading underground','heading to Sky City','catching the hyperloop','flying their hover car','texting on their phone','heading to the cliff cave'];
+var NPC_AVATARS=['👨','👩','🧑','👱','👨‍💼','👩‍💼','🧑‍🎓','👨‍🎓','👩‍🎓','🧑‍💻','👨‍🔬','👩‍🔬','🧑‍🎨','👨‍🎨','👩‍🎨','🧑‍🚀','👨‍🚀','👩‍🚀','🧓','👴'];
 var PROPERTIES=[
 {id:'p1',name:'Downtown Loft',price:5000,income:50,type:'housing'},{id:'p2',name:'Casino Penthouse',price:15000,income:150,type:'housing'},
 {id:'p3',name:'Residential House',price:3000,income:30,type:'housing'},{id:'p4',name:'Industrial Warehouse',price:8000,income:100,type:'commercial'},
@@ -104,61 +111,73 @@ var PROPERTIES=[
 {id:'p7',name:'Tech Store',price:6000,income:80,type:'commercial'},{id:'p8',name:'Hover Park Garage',price:4000,income:60,type:'commercial'}
 ];
 var keys={};
-document.addEventListener('keydown',function(e){keys[e.key.toLowerCase()]=true;if(e.key==='e'||e.key==='E')tryInteract();if(e.key==='v'||e.key==='V')toggleVehicle();if(e.key==='b'||e.key==='B')openOverlay('property');if(e.key==='h'||e.key==='H')tryHack();if(e.key==='Escape')togglePause();});
+document.addEventListener('keydown',function(e){keys[e.key.toLowerCase()]=true;if(e.key==='e'||e.key==='E')tryInteract();if(e.key==='v'||e.key==='V')toggleVehicle();if(e.key==='b'||e.key==='B')openOverlay('property');if(e.key==='h'||e.key==='H')tryHack();if(e.key==='p'||e.key==='P')openOverlay('phone');if(e.key==='f'||e.key==='F')openOverlay('fasttravel');if(e.key==='c'||e.key==='C')summonCloudNybus();if(e.key==='Escape')togglePause();});
 document.addEventListener('keyup',function(e){keys[e.key.toLowerCase()]=false;});
-function initNPCs(){game.npcs=[];for(var i=0;i<80;i++){var d=DISTRICTS[Math.floor(Math.random()*DISTRICTS.length)];var nx=d.x+Math.random()*d.w,ny=d.y+Math.random()*d.h;game.npcs.push({id:i,x:nx,y:ny,targetX:nx,targetY:ny,speed:0.5+Math.random(),name:NPC_NAMES[i%NPC_NAMES.length]+(i>=NPC_NAMES.length?i:''),task:NPC_TASKS[Math.floor(Math.random()*NPC_TASKS.length)],color:'#'+Math.floor(Math.random()*16777215).toString(16).substring(0,6),isStudent:Math.random()<0.3,isWorker:Math.random()<0.3,isRobot:Math.random()<0.1,dialogue:["Just "+NPC_TASKS[Math.floor(Math.random()*NPC_TASKS.length)]+".","Watch out for blackouts.","The Central Brain controls everything.","Time is money. Literally.","Incentives Inc. is going up!","Don't get caught during a blackout.","Earn time by going to school.","The underground city has real tech."]})}}
+function initNPCs(){game.npcs=[];for(var i=0;i<80;i++){var d=DISTRICTS[Math.floor(Math.random()*DISTRICTS.length)];var nx=d.x+Math.random()*d.w,ny=d.y+Math.random()*d.h;var name=NPC_NAMES[i%NPC_NAMES.length]+(i>=NPC_NAMES.length?i:'');game.npcs.push({id:i,x:nx,y:ny,targetX:nx,targetY:ny,speed:0.5+Math.random(),name:name,task:NPC_TASKS[Math.floor(Math.random()*NPC_TASKS.length)],color:'#'+Math.floor(Math.random()*16777215).toString(16).substring(0,6),avatar:NPC_AVATARS[i%NPC_AVATARS.length],phone:'555-'+String(1000+i).substring(1),isStudent:Math.random()<0.3,isWorker:Math.random()<0.3,isRobot:Math.random()<0.1,inContacts:false,dialogue:["Just "+NPC_TASKS[Math.floor(Math.random()*NPC_TASKS.length)]+".","Watch out for blackouts.","The Central Brain controls everything.","Time is money. Literally.","Incentives Inc. is going up!","Don't get caught during a blackout.","Earn time by going to school.","The underground city has real tech.","Sky City is where the wealthy live.","Take the hyperloop - it's fast!","I heard portals open during blackouts.","Cloud Nybus? Only the worthy can summon it."]})}}
 function initRobots(){game.robots=[];for(var i=0;i<15;i++){var a=(i/15)*Math.PI*2;game.robots.push({id:i,x:4000+Math.cos(a)*300,y:4000+Math.sin(a)*300,patrolX:4000+Math.cos(a)*300,patrolY:4000+Math.sin(a)*300,speed:2.5,chasing:false,alertRadius:200,catchRadius:30})}}
 function initVehicles(){game.vehicles=[{id:'v0',type:VEHICLE_TYPES[1],x:3200,y:3250,owned:true,parked:true}]}
 function loop(){if(!game.running)return;if(!game.paused){update();render()}requestAnimationFrame(loop)}
-function update(){var p=game.player,speed=p.onVehicle?p.onVehicle.type.speed:p.speed,dx=0,dy=0;
+function update(){var p=game.player,speed=p.onVehicle?p.onVehicle.type.speed:(p.onCloud?14:p.speed),dx=0,dy=0;
 if(keys['w']||keys['arrowup'])dy-=1;if(keys['s']||keys['arrowdown'])dy+=1;if(keys['a']||keys['arrowleft'])dx-=1;if(keys['d']||keys['arrowright'])dx+=1;
 if(dx||dy){var l=Math.sqrt(dx*dx+dy*dy);dx=dx/l*speed;dy=dy/l*speed;p.x+=dx;p.y+=dy;p.angle=Math.atan2(dy,dx);p.x=Math.max(0,Math.min(CITY_SIZE,p.x));p.y=Math.max(0,Math.min(CITY_SIZE,p.y))}
+if(game.cloudNybus&&p.onCloud){game.cloudNybus.x=p.x;game.cloudNybus.y=p.y-10}
 game.camera.x=p.x-W/2;game.camera.y=p.y-H/2;game.minute+=0.1;if(game.minute>=60){game.minute=0;game.hour++}if(game.hour>=24){game.hour=0;game.day++;game.time+=3600;dailyIncome()}
-game.time-=0.5;if(game.time<=0){gameOver();return}updateLocation();updateNPCs();updateRobots();updateBlackout();checkNearby();updateUI()}
+game.time-=0.5;if(game.time<=0){gameOver();return}updateLocation();updateNPCs();updateRobots();updateBlackout();checkNearby();checkNFCContacts();updatePortals();updateMissionNotifications();updateUI()}
 function dailyIncome(){game.ownedProperties.forEach(function(p){game.crypto+=p.income})}
 function updateLocation(){for(var i=0;i<DISTRICTS.length;i++){var d=DISTRICTS[i];if(game.player.x>=d.x&&game.player.x<=d.x+d.w&&game.player.y>=d.y&&game.player.y<=d.y+d.h){game.currentLocation=d.name;return}}game.currentLocation='Mega City Streets'}
 function updateNPCs(){game.npcs.forEach(function(n){var dx=n.targetX-n.x,dy=n.targetY-n.y,d=Math.sqrt(dx*dx+dy*dy);if(d<10){var a=Math.random()*Math.PI*2,r=100+Math.random()*300;n.targetX=Math.max(0,Math.min(CITY_SIZE,n.x+Math.cos(a)*r));n.targetY=Math.max(0,Math.min(CITY_SIZE,n.y+Math.sin(a)*r));if(Math.random()<0.3)n.task=NPC_TASKS[Math.floor(Math.random()*NPC_TASKS.length)]}else{n.x+=dx/d*n.speed;n.y+=dy/d*n.speed}})}
-function updateRobots(){game.robots.forEach(function(r){if(game.blackout){var dx=game.player.x-r.x,dy=game.player.y-r.y,d=Math.sqrt(dx*dx+dy*dy);if(d<r.catchRadius){arrestPlayer();return}if(d<r.alertRadius||r.chasing){r.chasing=true;r.x+=dx/d*r.speed;r.y+=dy/d*r.speed}else{var px=r.patrolX-r.x,py=r.patrolY-r.y,pd=Math.sqrt(px*px+py*py);if(pd>10){r.x+=px/pd*r.speed*0.5;r.y+=py/pd*r.speed*0.5}}}else{r.chasing=false;var px=r.patrolX-r.x,py=r.patrolY-r.y,pd=Math.sqrt(px*px+py*py);if(pd>10){r.x+=px/pd*r.speed*0.3;r.y+=py/pd*r.speed*0.3}}})}
-function updateBlackout(){if(!game.blackout){game.nextBlackout-=1;if(game.nextBlackout<=0&&game.hour>=20)triggerBlackout()}else{game.blackoutTimer-=1;if(game.blackoutTimer<=0)endBlackout()}}
-function triggerBlackout(){game.blackout=true;game.blackoutTimer=1800;document.getElementById('blackoutOverlay').style.display='block';document.getElementById('blackoutText').style.display='block';game.robots.forEach(function(r){r.chasing=false});if(window.jarvisSpeak)jarvisSpeak('Warning! City blackout! Robots hunting! Find shelter!');if(window.jarvisAddTask)jarvisAddTask('Survive the blackout','Avoid robots until power restores','challenge')}
-function endBlackout(){game.blackout=false;game.nextBlackout=21600+Math.random()*10800;document.getElementById('blackoutOverlay').style.display='none';document.getElementById('blackoutText').style.display='none';game.robots.forEach(function(r){r.chasing=false});if(window.jarvisGameCompleteTask)jarvisGameCompleteTask('Survive the blackout');if(window.jarvisSpeak)jarvisSpeak('Power restored.')}
+function updateRobots(){game.robots.forEach(function(r){if(game.blackoutReboot){r.chasing=false;r.x+=Math.random()*4-2;r.y+=Math.random()*4-2;return}if(game.blackout){var dx=game.player.x-r.x,dy=game.player.y-r.y,d=Math.sqrt(dx*dx+dy*dy);if(d<r.catchRadius){arrestPlayer();return}if(d<r.alertRadius||r.chasing){r.chasing=true;r.x+=dx/d*r.speed;r.y+=dy/d*r.speed}else{var px=r.patrolX-r.x,py=r.patrolY-r.y,pd=Math.sqrt(px*px+py*py);if(pd>10){r.x+=px/pd*r.speed*0.5;r.y+=py/pd*r.speed*0.5}}}else{r.chasing=false;var px=r.patrolX-r.x,py=r.patrolY-r.y,pd=Math.sqrt(px*px+py*py);if(pd>10){r.x+=px/pd*r.speed*0.3;r.y+=py/pd*r.speed*0.3}}})}
+function updateBlackout(){if(!game.blackout){game.nextBlackout-=1;if(game.nextBlackout<=0&&game.hour>=20)triggerBlackout()}else if(game.blackoutReboot){game.blackoutRebootTimer-=1;if(game.blackoutRebootTimer<=0)endBlackoutReboot()}else{game.blackoutTimer-=1;if(game.blackoutTimer<=0)startBlackoutReboot()}}
+function triggerBlackout(){game.blackout=true;game.blackoutTimer=54000;document.getElementById('blackoutOverlay').style.display='block';document.getElementById('blackoutText').style.display='block';document.getElementById('blackoutText').textContent='BLACKOUT - 15 MIN';game.robots.forEach(function(r){r.chasing=false});spawnEscapePortals();if(window.jarvisSpeak)jarvisSpeak('Warning! City blackout! Robots hunting! Portals open! Find shelter or use portals!');if(window.jarvisAddTask)jarvisAddTask('Survive the blackout','Avoid robots for 15 minutes. Portals can help you escape!','challenge')}
+function startBlackoutReboot(){game.blackoutReboot=true;game.blackoutRebootTimer=180;document.getElementById('blackoutText').textContent='CITY REBOOTING...';game.robots.forEach(function(r){r.chasing=false;r.x+=Math.random()*20-10;r.y+=Math.random()*20-10});if(window.jarvisSpeak)jarvisSpeak('City rebooting! Robots powering down!')}
+function endBlackoutReboot(){game.blackout=false;game.blackoutReboot=false;game.nextBlackout=21600+Math.random()*10800;document.getElementById('blackoutOverlay').style.display='none';document.getElementById('blackoutText').style.display='none';game.robots.forEach(function(r){r.chasing=false;r.x=r.patrolX;r.y=r.patrolY});game.portals=[];if(window.jarvisGameCompleteTask)jarvisGameCompleteTask('Survive the blackout');if(window.jarvisSpeak)jarvisSpeak('Power restored. Robots rebooted. They forgot about you.')}
+function spawnEscapePortals(){game.portals=[];for(var i=0;i<6;i++){var a=Math.random()*Math.PI*2,r=200+Math.random()*500;game.portals.push({x:game.player.x+Math.cos(a)*r,y:game.player.y+Math.sin(a)*r,targetIdx:Math.floor(Math.random()*FAST_TRAVEL_POINTS.length),life:54000,color:'#a855f7'})}}
+function updatePortals(){if(!game.blackout)return;game.portals.forEach(function(p){var d=Math.sqrt(Math.pow(p.x-game.player.x,2)+Math.pow(p.y-game.player.y,2));if(d<30){var dest=FAST_TRAVEL_POINTS[p.targetIdx];game.player.x=dest.x;game.player.y=dest.y;game.portals=[];if(window.jarvisSpeak)jarvisSpeak('Portal used! Escaped to '+dest.name+'!');showDialogue('Portal!','You entered a portal and escaped to '+dest.name+'!')}});game.portals.forEach(function(p){p.life-=1;if(p.life<=0)game.portals=[]})}
 function arrestPlayer(){game.paused=true;game.time-=3600;game.notoriety+=10;document.getElementById('arrestScreen').style.display='flex';document.getElementById('arrestDetail').textContent='You lost 1 hour. Notoriety: '+game.notoriety;if(window.jarvisSpeak)jarvisSpeak('You were caught! Lost time!')}
-function restartDay(){document.getElementById('arrestScreen').style.display='none';game.paused=false;game.player.x=3200;game.player.y=3200;game.hour=8;game.minute=0;game.blackout=false;document.getElementById('blackoutOverlay').style.display='none';document.getElementById('blackoutText').style.display='none';game.robots.forEach(function(r){r.chasing=false;r.x=r.patrolX;r.y=r.patrolY})}
+function restartDay(){document.getElementById('arrestScreen').style.display='none';game.paused=false;game.player.x=3200;game.player.y=3200;game.hour=8;game.minute=0;game.blackout=false;game.blackoutReboot=false;document.getElementById('blackoutOverlay').style.display='none';document.getElementById('blackoutText').style.display='none';game.portals=[];game.robots.forEach(function(r){r.chasing=false;r.x=r.patrolX;r.y=r.patrolY})}
 function gameOver(){game.running=false;showDialogue('GAME OVER','You ran out of time. Day: '+game.day+' | Crypto: '+game.crypto.toFixed(2)+' INC')}
 function render(){ctx.fillStyle='#0a0a15';ctx.fillRect(0,0,W,H);var c=game.camera;
 DISTRICTS.forEach(function(d){var sx=d.x-c.x,sy=d.y-c.y;if(sx+d.w<0||sy+d.h<0||sx>W||sy>H)return;ctx.fillStyle=d.color;ctx.fillRect(sx,sy,d.w,d.h);ctx.strokeStyle='rgba(15,52,96,0.5)';ctx.lineWidth=2;ctx.strokeRect(sx,sy,d.w,d.h);if(sx>-200&&sy>-50&&sx<W&&sy<H){ctx.fillStyle='rgba(233,69,96,0.4)';ctx.font='14px Segoe UI';ctx.fillText(d.name,sx+10,sy+20)}});
 ctx.fillStyle='rgba(40,40,60,0.6)';STREETS.forEach(function(s){var sx=s.x-c.x,sy=s.y-c.y;if(s.h){if(sy+s.h<0||sy>H)return;ctx.fillRect(sx,sy,s.w,s.h)}else{if(sx+s.w<0||sx>W)return;ctx.fillRect(sx,sy,s.w,s.h)}});
-var bcolors={keyhouse:'#3a2a1a',cave:'#1a1a0a',bank:'#1a2a3a',store:'#2a2a3a',school:'#3a2a2a',college:'#2a2a3a',casino:'#3a3a1a',brain:'#0a3a3a',underground:'#1a0a1a',courthouse:'#2a3a3a',hoverpark:'#0a3a2a',bar:'#3a1a2a',club:'#3a2a3a'};
+var bcolors={keyhouse:'#3a2a1a',cave:'#1a1a0a',bank:'#1a2a3a',store:'#2a2a3a',school:'#3a2a2a',college:'#2a2a3a',casino:'#3a3a1a',brain:'#0a3a3a',underground:'#1a0a1a',courthouse:'#2a3a3a',hoverpark:'#0a3a2a',bar:'#3a1a2a',club:'#3a2a3a',skycity:'#0a0a4a',hyperloop:'#0a3a3a',keycliff:'#2a2a1a',keytunnel:'#1a1a0a'};
 BUILDINGS.forEach(function(b){var sx=b.x-c.x,sy=b.y-c.y;if(sx+b.w<0||sy+b.h<0||sx>W||sy>H)return;ctx.fillStyle=bcolors[b.type]||'#2a2a2a';ctx.fillRect(sx,sy,b.w,b.h);ctx.strokeStyle=game.blackout?'#330000':'#e94560';ctx.lineWidth=1.5;ctx.strokeRect(sx,sy,b.w,b.h);if(sx>-200&&sy>-30&&sx<W&&sy<H){ctx.fillStyle=game.blackout?'rgba(100,50,50,0.6)':'rgba(255,255,255,0.7)';ctx.font='10px Segoe UI';ctx.fillText(b.name,sx+4,sy-4)}var dist=Math.sqrt(Math.pow(b.x-game.player.x,2)+Math.pow(b.y-game.player.y,2));if(dist<80){ctx.fillStyle='#00ffcc';ctx.font='bold 12px Segoe UI';ctx.fillText('[E]',sx+b.w/2-8,sy-8)}});
 game.npcs.forEach(function(n){var sx=n.x-c.x,sy=n.y-c.y;if(sx<-20||sy<-20||sx>W+20||sy>H+20)return;if(n.isRobot){ctx.fillStyle='#666';ctx.fillRect(sx-5,sy-5,10,10)}else{ctx.fillStyle=n.color;ctx.beginPath();ctx.arc(sx,sy,6,0,Math.PI*2);ctx.fill()}var d=Math.sqrt(Math.pow(n.x-game.player.x,2)+Math.pow(n.y-game.player.y,2));if(d<60){ctx.fillStyle='rgba(255,255,255,0.6)';ctx.font='9px Segoe UI';ctx.fillText(n.name,sx-12,sy-10)}});
 game.robots.forEach(function(r){var sx=r.x-c.x,sy=r.y-c.y;if(sx<-30||sy<-30||sx>W+30||sy>H+30)return;ctx.fillStyle=r.chasing?'#ff0000':'#aa3333';ctx.fillRect(sx-8,sy-8,16,16);ctx.fillStyle=r.chasing?'#ffff00':'#ff6666';ctx.fillRect(sx-3,sy-3,6,6);if(game.blackout){ctx.strokeStyle=r.chasing?'rgba(255,0,0,0.2)':'rgba(255,100,100,0.1)';ctx.beginPath();ctx.arc(sx,sy,r.alertRadius,0,Math.PI*2);ctx.stroke()}});
 game.vehicles.forEach(function(v){if(v===game.player.onVehicle)return;var sx=v.x-c.x,sy=v.y-c.y;if(sx<-30||sy<-30||sx>W+30||sy>H+30)return;ctx.fillStyle=v.type.color;ctx.fillRect(sx-v.type.size/2,sy-v.type.size/2,v.type.size,v.type.size/2)});
+if(game.portals.length>0){game.portals.forEach(function(p){var sx=p.x-c.x,sy=p.y-c.y;if(sx<-50||sy<-50||sx>W+50||sy>H+50)return;ctx.fillStyle='rgba(168,85,247,0.3)';ctx.beginPath();ctx.arc(sx,sy,25,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#a855f7';ctx.lineWidth=3;ctx.beginPath();ctx.arc(sx,sy,25,0,Math.PI*2);ctx.stroke();ctx.fillStyle='#a855f7';ctx.font='bold 10px Segoe UI';ctx.fillText('PORTAL',sx-15,sy-30)})}
+if(game.cloudNybus){var csx=game.cloudNybus.x-c.x,csy=game.cloudNybus.y-c.y;ctx.fillStyle='rgba(255,255,255,0.8)';ctx.beginPath();ctx.arc(csx,csy-5,20,0,Math.PI*2);ctx.fill();ctx.fillStyle='rgba(255,255,255,0.6)';ctx.beginPath();ctx.arc(csx-15,csy,15,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.arc(csx+15,csy,15,0,Math.PI*2);ctx.fill();ctx.fillStyle='#ffcc00';ctx.font='8px Segoe UI';ctx.fillText('Nybus',csx-12,csy+20)}
 var psx=game.player.x-c.x,psy=game.player.y-c.y;if(game.player.onVehicle){var v=game.player.onVehicle;ctx.fillStyle=v.type.color;ctx.fillRect(psx-v.type.size/2,psy-v.type.size/3,v.type.size,v.type.size*0.66)}
 ctx.fillStyle='#e94560';ctx.beginPath();ctx.arc(psx,psy,8,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.stroke();ctx.strokeStyle='#00ffcc';ctx.beginPath();ctx.moveTo(psx,psy);ctx.lineTo(psx+Math.cos(game.player.angle)*15,psy+Math.sin(game.player.angle)*15);ctx.stroke();renderMinimap()}
 function renderMinimap(){miniCtx.fillStyle='#0a0a15';miniCtx.fillRect(0,0,180,180);var s=180/CITY_SIZE;DISTRICTS.forEach(function(d){miniCtx.fillStyle=d.color;miniCtx.fillRect(d.x*s,d.y*s,d.w*s,d.h*s)});miniCtx.fillStyle='#e94560';BUILDINGS.forEach(function(b){miniCtx.fillRect(b.x*s-1,b.y*s-1,3,3)});miniCtx.fillStyle='rgba(100,200,100,0.5)';game.npcs.forEach(function(n){miniCtx.fillRect(n.x*s,n.y*s,1,1)});miniCtx.fillStyle='#ff3333';game.robots.forEach(function(r){miniCtx.fillRect(r.x*s-1,r.y*s-1,2,2)});miniCtx.fillStyle='#00ffcc';miniCtx.fillRect(game.player.x*s-2,game.player.y*s-2,4,4)}
-function updateUI(){var h=Math.floor(game.time/3600),m=Math.floor((game.time%3600)/60),s=Math.floor(game.time%60);document.getElementById('timeDisplay').textContent=String(h).padStart(2,'0')+':'+String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');document.getElementById('cryptoDisplay').textContent='Incentives Inc.: '+game.crypto.toFixed(2);document.getElementById('locationDisplay').textContent='Mega City - '+game.currentLocation;document.getElementById('dayDisplay').textContent='Day '+game.day+' | '+String(Math.floor(game.hour)).padStart(2,'0')+':'+String(Math.floor(game.minute)).padStart(2,'0');var vh=document.getElementById('vehicleHud');if(game.player.onVehicle){vh.style.display='block';vh.textContent='Vehicle: '+game.player.onVehicle.type.name+' (V to dismount)'}else vh.style.display='none'}
+function checkNFCContacts(){game.npcs.forEach(function(n){if(n.inContacts)return;var d=Math.sqrt(Math.pow(n.x-game.player.x,2)+Math.pow(n.y-game.player.y,2));if(d<50){n.inContacts=true;game.contacts.push({name:n.name,phone:n.phone,avatar:n.avatar,isRobot:n.isRobot,isStudent:n.isStudent,isWorker:n.isWorker});addPhoneMessage('Contact Added',n.avatar+' '+n.name+' added to contacts ('+n.phone+')');if(window.jarvisSpeak)jarvisSpeak(n.name+' added to contacts')}})}
+function addPhoneMessage(title,text){game.phoneMessages.push({title:title,text:text,time:game.day+':'+String(Math.floor(game.hour)).padStart(2,'0')+':'+String(Math.floor(game.minute)).padStart(2,'0'),read:false});if(game.phoneMessages.length>20)game.phoneMessages.shift()}
+function updateMissionNotifications(){if(Math.random()<0.002&&game.missionNotifications.length<3){var missions=[{title:'MISSION',text:'Deliver a package to Sky City. Reward: 200 INC + 3600s',reward:{crypto:200,time:3600}},{title:'TASK',text:'Hack the Central Bank for a wealthy client. Reward: 500 INC',reward:{crypto:500,time:0}},{title:'MISSION',text:'Sky City resident needs a guide to the Underground. Reward: 300 INC + 1800s',reward:{crypto:300,time:1800}},{title:'TASK',text:'Steal crypto from the Casino vault during next blackout. Reward: 1000 INC',reward:{crypto:1000,time:0}},{title:'MISSION',text:'Escort a student to Keyhouse. Reward: 150 INC + 1200s',reward:{crypto:150,time:1200}},{title:'TASK',text:'Create a gadget for a Sky City resident. Reward: 400 INC',reward:{crypto:400,time:0}}];var m=missions[Math.floor(Math.random()*missions.length)];game.missionNotifications.push(m);addPhoneMessage(m.title,m.text);if(window.jarvisSpeak)jarvisSpeak('New mission notification on your phone!')}}
+function updateUI(){var h=Math.floor(game.time/3600),m=Math.floor((game.time%3600)/60),s=Math.floor(game.time%60);document.getElementById('timeDisplay').textContent=String(h).padStart(2,'0')+':'+String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');document.getElementById('cryptoDisplay').textContent='Incentives Inc.: '+game.crypto.toFixed(2);document.getElementById('locationDisplay').textContent='Mega City - '+game.currentLocation;document.getElementById('dayDisplay').textContent='Day '+game.day+' | '+String(Math.floor(game.hour)).padStart(2,'0')+':'+String(Math.floor(game.minute)).padStart(2,'0');var vh=document.getElementById('vehicleHud');if(game.player.onVehicle){vh.style.display='block';vh.textContent='Vehicle: '+game.player.onVehicle.type.name+' (V to dismount)'}else if(game.cloudNybus){vh.style.display='block';vh.textContent='Cloud Nybus active (C to dismount)'}else vh.style.display='none'}}
 var nearbyBuilding=null;
 function checkNearby(){nearbyBuilding=null;var closest=null,cd=80;BUILDINGS.forEach(function(b){var d=Math.sqrt(Math.pow(b.x-game.player.x,2)+Math.pow(b.y-game.player.y,2));if(d<cd){closest=b;cd=d}});nearbyBuilding=closest;var pr=document.getElementById('interactionPrompt');if(closest){pr.style.display='block';pr.textContent='Press E to enter '+closest.name}else{var nn=null;game.npcs.forEach(function(n){var d=Math.sqrt(Math.pow(n.x-game.player.x,2)+Math.pow(n.y-game.player.y,2));if(d<40)nn=n});if(nn){pr.style.display='block';pr.textContent='Press E to talk to '+nn.name}else pr.style.display='none'}}
 function tryInteract(){if(!game.running||game.paused)return;if(nearbyBuilding){enterBuilding(nearbyBuilding);return}game.npcs.forEach(function(n){var d=Math.sqrt(Math.pow(n.x-game.player.x,2)+Math.pow(n.y-game.player.y,2));if(d<40){var msg=n.dialogue[Math.floor(Math.random()*n.dialogue.length)];showDialogue(n.name,msg+(n.isStudent?' (Student)':n.isWorker?' (Worker)':n.isRobot?' (Robot)':''));game.time+=30;if(window.jarvisSpeak)jarvisSpeak(n.name+' says: '+msg);return}})}
-function enterBuilding(b){var handlers={keyhouse:enterKeyhouse,cave:enterCave,school:function(){openOverlay('school','high')},college:function(){openOverlay('school','college')},casino:function(){openOverlay('casino')},brain:function(){openOverlay('brain')},underground:enterUnderground,courthouse:function(){openOverlay('courthouse')},hoverpark:function(){openOverlay('hoverpark')},store:function(){openStore(b)},bank:openBar_enter,bar:enterBar,club:enterClub};if(handlers[b.type])handlers[b.type]();else showDialogue(b.name,'This building is closed or under construction.')}
+function enterBuilding(b){var handlers={keyhouse:enterKeyhouse,cave:enterCave,school:function(){openOverlay('school','high')},college:function(){openOverlay('school','college')},casino:function(){openOverlay('casino')},brain:function(){openOverlay('brain')},underground:enterUnderground,courthouse:function(){openOverlay('courthouse')},hoverpark:function(){openOverlay('hoverpark')},store:function(){openStore(b)},bank:openBar_enter,bar:enterBar,club:enterClub,skycity:enterSkyCity,hyperloop:function(){openOverlay('hyperloop')},keycliff:enterKeyCliff,keytunnel:enterKeyTunnel};if(handlers[b.type])handlers[b.type]();else showDialogue(b.name,'This building is closed or under construction.')}
 function openBar_enter(){openBank()}
 function showDialogue(title,text){var box=document.getElementById('dialogueBox');document.getElementById('dialogueTitle').textContent=title;document.getElementById('dialogueText').textContent=text;box.style.display='block'}
 function closeDialogue(){document.getElementById('dialogueBox').style.display='none'}
 function togglePause(){game.paused=!game.paused;if(game.paused)showDialogue('Paused','Game paused. Press ESC to resume.');else closeDialogue()}
-function showAbout(){showDialogue('Mega City','A 60-mile open world city. Time is your life - earn it by working, learning, and completing missions. Incentives Inc. is the crypto currency. Survive blackouts, explore Keyhouse, attend school, gamble at the casino, hack the Central Brain, buy property, create businesses, and ride hover vehicles. Use JARVIS for voice/text control and agent chat.')}
+function showAbout(){showDialogue('Mega City','A 60-mile open world city. Time is your life - earn it by working, learning, and completing missions. Incentives Inc. is the crypto currency. Survive 15-minute blackouts with escape portals, explore Keyhouse and forge keys, attend school with futuristic electives, gamble at the casino, hack the Central Brain, buy property, create businesses, ride hover vehicles or flying cars, summon the Cloud Nybus, take the hyperloop, use your phone for contacts and missions, and visit Sky City for the wealthy. Use JARVIS for voice/text control and agent chat.')}
 
 // --- Keyhouse ---
 function enterKeyhouse(){
 showDialogue('Keyhouse Manor','The grand Keyhouse Manor stands as it did in the Lock & Key series.\nThe wooden doors, the grandfather clock, the mysterious hallways.\nSomewhere inside are magical keys hidden by the Locke family.\nThe grounds stretch out behind the manor with ancient trees.');
 game.time+=120;
-if(window.jarvisAddTask){jarvisAddTask('Explore Keyhouse','Search the manor for hidden keys','objective');jarvisAddTask('Visit the Cave','The cave beneath Keyhouse holds secrets','side');jarvisAddTask('Walk the grounds','Explore the Keyhouse estate grounds','side')}
+if(window.jarvisAddTask){jarvisAddTask('Explore Keyhouse','Search the manor for hidden keys','objective');jarvisAddTask('Visit the Cave','The cave beneath Keyhouse holds secrets','side');jarvisAddTask('Walk the grounds','Explore the Keyhouse estate grounds','side');jarvisAddTask('Create a new key','Use the key forge in Keyhouse','side')}
 if(Math.random()<0.3){game.keys++;game.inventory.push('Mysterious Key');showDialogue('Found!','You discovered a mysterious key hidden in Keyhouse!');if(window.jarvisGameCompleteTask)jarvisGameCompleteTask('Explore Keyhouse');if(window.jarvisSpeak)jarvisSpeak('You found a mysterious key!')}
 }
 function enterCave(){
-showDialogue('The Cave','A dark cave beneath Keyhouse. The walls glow with strange symbols.\nThis is where the Locke family kept their most dangerous secrets.\nYou feel a strange energy emanating from deep within.');
+showDialogue('The Cave','A dark cave beneath Keyhouse. The walls glow with strange symbols.\nThis is where the Locke family kept their most dangerous secrets.\nYou feel a strange energy emanating from deep within.\nThere is a key forge here - you can create new magical keys.');
 game.time+=60;
 if(Math.random()<0.2){game.crypto+=10;showDialogue('Crypto Found!','You found 10 INC crypto in the cave!')}
+var forge=prompt('Create a new key?\n1=Anywhere Key (teleport)\n2=Matchstick Key (fire)\n3=Head Key (mind control)\n4=Ghost Key (invisibility)\n5=Time Key (slow time)\n6=Music Box Key (calm robots)\nEnter number or Cancel:');var keyTypes={'1':'Anywhere Key','2':'Matchstick Key','3':'Head Key','4':'Ghost Key','5':'Time Key','6':'Music Box Key'};if(forge&&keyTypes[forge]){game.keys++;game.createdKeys.push(keyTypes[forge]);game.inventory.push(keyTypes[forge]);showDialogue('Key Created!','You forged the '+keyTypes[forge]+'! It is now in your inventory.');if(window.jarvisSpeak)jarvisSpeak('You created the '+keyTypes[forge]+'!');if(window.jarvisGameCompleteTask)jarvisGameCompleteTask('Create a new key')}
 }
+function enterKeyCliff(){showDialogue('Cliff Cave Entrance','A cave by the cliff near Keyhouse. The cliff overlooks the ocean.\nInside, the walls are covered in ancient carvings of keys and doors.\nThis is where the Locke children discovered many of their secrets.');game.time+=90;if(Math.random()<0.25){game.keys++;game.inventory.push('Cliff Key');showDialogue('Found!','You found a Cliff Key hidden in the rocks!')}if(window.jarvisAddTask)jarvisAddTask('Explore the cliff cave','Search for keys by the cliff','side')}
+function enterKeyTunnel(){showDialogue('The Tunnel','A dark tunnel leading from the cliff cave deep underground.\nThe walls are damp and echo with distant sounds.\nAt the end, you see a faint golden glow - another key forge!');game.time+=120;if(Math.random()<0.3){game.keys++;game.inventory.push('Tunnel Key');showDialogue('Found!','You found a Tunnel Key in the darkness!')}var f=prompt('Create a key at the tunnel forge?\n1=Shadow Key (darkness)\n2=Portal Key (open doors anywhere)\n3=Animal Key (talk to animals)\nEnter number or Cancel:');var kt={'1':'Shadow Key','2':'Portal Key','3':'Animal Key'};if(f&&kt[f]){game.keys++;game.createdKeys.push(kt[f]);game.inventory.push(kt[f]);showDialogue('Key Created!','You forged the '+kt[f]+' at the tunnel forge!');if(window.jarvisSpeak)jarvisSpeak('You created the '+kt[f]+'!')}}
 
 // --- Overlay System ---
 function openOverlay(type,sub){
@@ -169,6 +188,10 @@ else if(type==='brain'){t.textContent='CITY BRAIN - CENTRAL COMPUTER';c.innerHTM
 else if(type==='courthouse'){t.textContent='Mega City Courthouse';c.innerHTML=renderCourthouse()}
 else if(type==='hoverpark'){t.textContent='Hover Vehicle Station';c.innerHTML=renderHoverPark()}
 else if(type==='property'){t.textContent='Mega City Real Estate';c.innerHTML=renderProperty()}
+else if(type==='phone'){t.textContent='Mega City Phone';c.innerHTML=renderPhone()}
+else if(type==='fasttravel'){t.textContent='Fast Travel & Hyperloop';c.innerHTML=renderFastTravel()}
+else if(type==='hyperloop'){t.textContent='Hyperloop Station';c.innerHTML=renderHyperloop()}
+else if(type==='skycity'){t.textContent='Sky City - The Elite Above';c.innerHTML=renderSkyCity()}
 document.getElementById('overlayUI').style.display='flex';game.paused=true;
 }
 function closeOverlay(){document.getElementById('overlayUI').style.display='none';game.paused=false}
@@ -210,9 +233,19 @@ function attendClass(skill,name,tr){game.time+=tr;game.grades.high[skill]=(game.
 function causeMischief(){if(Math.random()<0.3){game.time-=600;game.notoriety+=5;closeOverlay();showDialogue('Caught!','You got caught! -600s, +5 notoriety.')}else{game.crypto+=50;game.notoriety+=5;closeOverlay();showDialogue('Mischief!','You pulled off a prank! +50 INC. Notoriety +5.');if(window.jarvisGameCompleteTask)jarvisGameCompleteTask('Cause mischief')}}
 function talkToStudents(){game.time+=60;closeOverlay();var n=NPC_NAMES[Math.floor(Math.random()*NPC_NAMES.length)];var t=['wants to skip class','is studying for exams','heard about a blackout','is trading crypto','wants to cause trouble','knows about the underground city'];showDialogue(n,n+' '+t[Math.floor(Math.random()*t.length)]+'.')}
 function talkToProfessors(){game.time+=120;closeOverlay();var p=['Dr. Chen (CS)','Prof. Williams (Business)','Dr. Patel (Engineering)','Prof. Garcia (Law)'];var a=['Study hard to earn more time.','The Central Brain controls everything.','Crypto is the future. Invest in INC.','During blackouts, stay safe.','Go to the Courthouse to start a business.','The underground city has the best tech.'];var prof=p[Math.floor(Math.random()*p.length)];showDialogue(prof,prof+' says: '+a[Math.floor(Math.random()*a.length)]);if(window.jarvisGameCompleteTask)jarvisGameCompleteTask('Talk to professors')}
-function pickElectives(){var e=['Music','Photography','Drama','Cooking','Robotics','Crypto Trading','Hacking 101','Urban Planning'];var h='<p style="color:#888;margin-bottom:12px;">Pick an elective:</p>';e.forEach(function(x){h+='<div class="class-card" onclick="takeElective(\''+x+'\')"><div class="class-title">'+x+'</div><div class="class-reward">+1800s | Skill bonus</div></div>'});document.getElementById('overlayContent').innerHTML=h}
+function pickElectives(){var e=['Music','Photography','Drama','Cooking','Robotics','Crypto Trading','Hacking 101','Urban Planning','High-Tech Devices','Computer Programming','Robotics Engineering','Vehicle Creation','Gadget Making','Time Portal Class','Time Technologies','AI Programming','Cybernetics','Quantum Computing','Holographic Design','Drone Piloting'];var h='<p style="color:#888;margin-bottom:12px;">Pick an elective (futuristic electives available!):</p>';e.forEach(function(x){h+='<div class="class-card" onclick="takeElective(\''+x+'\')"><div class="class-title">'+x+'</div><div class="class-reward">+1800s | Skill bonus</div></div>'});document.getElementById('overlayContent').innerHTML=h}
 
-function takeElective(n){game.time+=1800;closeOverlay();showDialogue('Elective Complete!','You took '+n+'. +1800s!');if(n==='Hacking 101')game.hackingLevel++;if(n==='Crypto Trading')game.crypto+=20}
+function takeElective(n){game.time+=1800;closeOverlay();var bonus='';if(n==='Hacking 101'){game.hackingLevel++;bonus=' Hacking level up!'}
+else if(n==='Crypto Trading'){game.crypto+=20;bonus=' +20 INC!'}
+else if(n==='Robotics'||n==='Robotics Engineering'){game.hackingLevel++;bonus=' Robotics skill up!'}
+else if(n==='High-Tech Devices'||n==='Gadget Making'){game.inventory.push('Custom Gadget');bonus=' Gadget created!'}
+else if(n==='Computer Programming'||n==='AI Programming'||n==='Quantum Computing'){game.hackingLevel++;bonus=' Tech skill up!'}
+else if(n==='Vehicle Creation'){game.inventory.push('Vehicle Blueprint');bonus=' Vehicle blueprint acquired!'}
+else if(n==='Time Portal Class'||n==='Time Technologies'){game.time+=3600;bonus=' +3600s time tech bonus!'}
+else if(n==='Cybernetics'){game.player.health=150;bonus=' Health upgraded to 150!'}
+else if(n==='Drone Piloting'){game.inventory.push('Personal Drone');bonus=' Drone acquired!'}
+else if(n==='Holographic Design'){game.crypto+=30;bonus=' +30 INC!'}
+showDialogue('Elective Complete!','You took '+n+'. +1800s!'+bonus);if(window.jarvisSpeak)jarvisSpeak('Elective completed: '+n)}
 
 // --- Casino ---
 function renderCasino(){
@@ -274,6 +307,97 @@ function enterClub(){game.time+=180;game.crypto-=25;if(game.crypto<0)game.crypto
 // --- Hacking ---
 function tryHack(){if(!game.running||game.paused)return;var hackable=null;BUILDINGS.forEach(function(b){var d=Math.sqrt(Math.pow(b.x-game.player.x,2)+Math.pow(b.y-game.player.y,2));if(d<60&&['bank','store','brain','casino'].includes(b.type))hackable=b});if(!hackable){showDialogue('No Target','No hackable building nearby. Stand near a bank, store, casino, or the Central Brain.');return}if(game.hackingLevel<1){showDialogue('No Skill','Take Hacking 101 at school first.');return}var success=Math.random()<(0.3+game.hackingLevel*0.1);if(success){var reward=50+game.hackingLevel*25;game.crypto+=reward;game.notoriety+=5;showDialogue('HACK SUCCESS','You hacked '+hackable.name+'! +'+reward+' INC. Notoriety +5.');if(window.jarvisSpeak)jarvisSpeak('Hack successful!')}else{game.time-=300;game.notoriety+=10;showDialogue('HACK FAILED','You failed to hack '+hackable.name+'. -300s. Notoriety +10.')}}
 
+// --- Phone System ---
+function renderPhone(){
+var h='<div style="color:#888;margin-bottom:12px;">Mega City Phone | Contacts: '+game.contacts.length+' | Messages: '+game.phoneMessages.filter(function(m){return !m.read}).length+' unread</div>';
+h+='<div style="display:flex;gap:8px;margin-bottom:16px;"><button class="btn" onclick="renderPhoneTab(\'contacts\')">Contacts</button><button class="btn" onclick="renderPhoneTab(\'messages\')">Messages</button><button class="btn" onclick="renderPhoneTab(\'missions\')">Missions</button></div>';
+h+='<div id="phoneTab"><p style="color:#666;">Select a tab above.</p></div>';
+return h;
+}
+function renderPhoneTab(tab){
+var el=document.getElementById('phoneTab');
+if(tab==='contacts'){
+var h='<div style="max-height:300px;overflow-y:auto;">';
+if(game.contacts.length===0){h+='<p style="color:#666;">No contacts yet. Walk near people to auto-add them via NFC!</p>'}
+game.contacts.forEach(function(c,i){
+h+='<div class="class-card" style="display:flex;align-items:center;gap:12px;cursor:pointer;" onclick="callContact('+i+')"><div style="font-size:32px;">'+c.avatar+'</div><div><div class="class-title" style="font-size:14px;">'+c.name+'</div><div class="class-desc" style="font-size:11px;">'+c.phone+(c.isStudent?' (Student)':c.isWorker?' (Worker)':c.isRobot?' (Robot)':'')+'</div></div></div>';
+});
+h+='</div>';el.innerHTML=h;
+}else if(tab==='messages'){
+var h='<div style="max-height:300px;overflow-y:auto;">';
+if(game.phoneMessages.length===0){h+='<p style="color:#666;">No messages yet.</p>'}
+game.phoneMessages.slice().reverse().forEach(function(m){
+h+='<div class="class-card" style="padding:8px;"><div class="class-title" style="font-size:13px;color:'+(m.read?'#666':'#e94560')+';">'+m.title+'</div><div class="class-desc" style="font-size:11px;">'+m.text+'</div><div style="font-size:9px;color:#555;margin-top:4px;">'+m.time+'</div></div>';
+m.read=true;
+});
+h+='</div>';el.innerHTML=h;
+}else if(tab==='missions'){
+var h='<div style="max-height:300px;overflow-y:auto;">';
+if(game.missionNotifications.length===0){h+='<p style="color:#666;">No active missions. Random missions will pop up on your phone!</p>'}
+game.missionNotifications.forEach(function(m,i){
+h+='<div class="class-card" style="padding:8px;"><div class="class-title" style="font-size:13px;color:#ffcc00;">'+m.title+'</div><div class="class-desc" style="font-size:11px;">'+m.text+'</div><button class="btn" style="margin-top:6px;" onclick="acceptMission('+i+')">Accept</button><button class="btn" onclick="declineMission('+i+')">Decline</button></div>';
+});
+h+='</div>';el.innerHTML=h;
+}
+}
+function callContact(i){var c=game.contacts[i];if(!c)return;var msgs=['Hey, what are you up to?','Watch out for blackouts!','Got any crypto to spare?','Meet me at the casino?','The hyperloop is fast today.','Sky City is amazing up here.','I heard the Central Brain is acting up.','Want to do a mission together?','Keyhouse has some weird energy lately.','The underground city has new tech!'];var msg=msgs[Math.floor(Math.random()*msgs.length)];showDialogue('Calling '+c.name,c.avatar+' '+c.name+' says: "'+msg+'"');game.time+=30;addPhoneMessage('Call: '+c.name,c.avatar+' '+c.name+': "'+msg+'"');if(window.jarvisSpeak)jarvisSpeak(c.name+' says: '+msg)}
+function textContact(i){var c=game.contacts[i];if(!c)return;var txt=prompt('Text to '+c.name+':');if(txt){addPhoneMessage('Text to '+c.name,'You: "'+txt+'"');var replies=['Cool!','Got it.','Meet you there!','Be careful out there.','Sure thing!','I will check it out.','Sounds good!','Let me know when you arrive.'];var reply=replies[Math.floor(Math.random()*replies.length)];addPhoneMessage('Text from '+c.name,c.avatar+' '+c.name+': "'+reply+'"');showDialogue('Text Reply',c.name+': "'+reply+'"')}}
+function acceptMission(i){var m=game.missionNotifications[i];if(!m)return;game.crypto+=m.reward.crypto;game.time+=m.reward.time;game.missionNotifications.splice(i,1);addPhoneMessage('Mission Accepted','You accepted: '+m.text+' Rewards claimed!');closeOverlay();showDialogue('Mission Complete!','You completed the mission! +'+m.reward.crypto+' INC, +'+m.reward.time+'s!');if(window.jarvisSpeak)jarvisSpeak('Mission completed! Rewards earned!')}
+function declineMission(i){if(game.missionNotifications[i])game.missionNotifications.splice(i,1);renderPhoneTab('missions')}
+
+// --- Fast Travel ---
+function renderFastTravel(){
+var h='<p style="color:#888;margin-bottom:16px;">Fast Travel - Instantly travel to discovered locations (Harry Potter style).</p>';
+FAST_TRAVEL_POINTS.forEach(function(p,i){
+h+='<div class="class-card" onclick="fastTravelTo('+i+')"><div class="class-title">'+p.name+'</div><div class="class-reward">Instant travel</div></div>';
+});
+h+='<p style="color:#666;margin-top:12px;font-size:11px;">Press F anytime to open fast travel.</p>';
+return h;
+}
+function fastTravelTo(i){var p=FAST_TRAVEL_POINTS[i];if(!p)return;game.player.x=p.x;game.player.y=p.y;closeOverlay();showDialogue('Fast Travel','You traveled to '+p.name+'!');if(window.jarvisSpeak)jarvisSpeak('Fast traveled to '+p.name)}
+
+// --- Hyperloop ---
+function renderHyperloop(){
+var h='<p style="color:#888;margin-bottom:16px;">Hyperloop Rail System - High-speed transport across Mega City.</p>';
+HYPERLOOP_STATIONS.forEach(function(s,i){
+h+='<div class="class-card" onclick="takeHyperloop('+i+')"><div class="class-title">'+s.name+' Station</div><div class="class-reward">High-speed rail | 5 INC</div></div>';
+});
+h+='<p style="color:#ffcc00;margin-top:12px;">Your INC: '+game.crypto.toFixed(2)+'</p>';
+return h;
+}
+function takeHyperloop(i){var s=HYPERLOOP_STATIONS[i];if(!s)return;if(game.crypto<5){showDialogue('Not enough INC','Hyperloop costs 5 INC.');return}game.crypto-=5;game.player.x=s.x;game.player.y=s.y;closeOverlay();showDialogue('Hyperloop!','You took the hyperloop to '+s.name+'! -5 INC.');if(window.jarvisSpeak)jarvisSpeak('Hyperloop to '+s.name)}
+
+// --- Sky City ---
+function enterSkyCity(){
+if(!game.skyCityAccess){
+var cost=10000;
+if(game.crypto<cost&&game.time<72000){showDialogue('Access Denied','Sky City is for the super rich. You need 10,000 INC or 20+ hours of time to buy entry.');return}
+var c=prompt('Buy Sky City access for 10,000 INC? (y/n)');if(c==='y'||c==='Y'){if(game.crypto>=cost){game.crypto-=cost;game.skyCityAccess=true;showDialogue('Welcome to Sky City!','You now have access to Sky City - the elite city in the sky!');if(window.jarvisSpeak)jarvisSpeak('Sky City access granted!')}else if(game.time>=72000){game.time-=72000;game.skyCityAccess=true;showDialogue('Welcome to Sky City!','You paid with 20 hours of your life time. Sky City access granted!');if(window.jarvisSpeak)jarvisSpeak('Sky City access granted! Paid with time!')}else{showDialogue('Not Enough','You need 10,000 INC or 20 hours of time.')}}return;
+}
+openOverlay('skycity');
+}
+function renderSkyCity(){
+var h='<p style="color:#00ccff;margin-bottom:16px;">Sky City - The elite city in the clouds. The super rich live here with massive time on their forearms. They hire people below for missions.</p>';
+h+='<p style="color:#ffcc00;margin-bottom:12px;">Your INC: '+game.crypto.toFixed(2)+' | Time: '+Math.floor(game.time/3600)+'h '+Math.floor((game.time%3600)/60)+'m</p>';
+h+='<div class="class-card" onclick="skyCityMission()"><div class="class-title">Accept Sky City Mission</div><div class="class-desc">Wealthy residents need tasks done below. High rewards!</div><div class="class-reward">200-1000 INC + time</div></div>';
+h+='<div class="class-card" onclick="skyCityShop()"><div class="class-title">Sky City Luxury Shop</div><div class="class-desc">Exclusive items only available in Sky City</div><div class="class-reward">Premium gear</div></div>';
+h+='<div class="class-card" onclick="skyCityTimeExchange()"><div class="class-title">Time Exchange (In Time Movie)</div><div class="class-desc">Trade time with other Sky City residents. Hold forearms to transfer.</div><div class="class-reward">Exchange time</div></div>';
+h+='<div class="class-card" onclick="skyCityBuyProperty()"><div class="class-title">Buy Sky City Penthouse</div><div class="class-desc">Own property in the sky. Massive income.</div><div class="class-reward">500 INC/day | 50,000 INC</div></div>';
+h+='<div class="class-card" onclick="skyCityTimeCops()"><div class="class-title">Time Cops (In Time Movie)</div><div class="class-desc">Time cops patrol Sky City. They check your forearm time. If you have too much, they get suspicious.</div><div class="class-reward">Risk: Lose time if caught</div></div>';
+return h;
+}
+function skyCityMission(){var missions=[{t:'Deliver crypto to a CEO',r:500,tm:1800},{t:'Hack a rival corp for a resident',r:800,tm:0},{t:'Escort a wealthy resident underground',r:300,tm:1200},{t:'Steal a time capsule from Downtown',r:600,tm:3600},{t:'Create a custom gadget for a resident',r:400,tm:0}];var m=missions[Math.floor(Math.random()*missions.length)];game.crypto+=m.r;game.time+=m.tm;closeOverlay();showDialogue('Mission Complete!','You completed: '+m.t+'. +'+m.r+' INC, +'+m.tm+'s!');if(window.jarvisSpeak)jarvisSpeak('Sky City mission complete!')}
+function skyCityShop(){showDialogue('Sky City Shop','1. Time Shield (+10000s): 500 INC\n2. Crypto Multiplier (2x income for 5 days): 1000 INC\n3. Cloud Nybus Summon Stone: 3000 INC\n4. Invisibility Cloak: 2000 INC\n5. Time Freeze Device: 5000 INC');var c=prompt('Buy: 1-5');var items={'1':{n:'Time Shield',c:500,f:function(){game.time+=10000}},'2':{n:'Crypto Multiplier',c:1000,f:function(){game.ownedProperties.forEach(function(p){p.income*=2})}},'3':{n:'Cloud Nybus Stone',c:3000,f:function(){game.inventory.push('Cloud Nybus Stone');game.cloudNybusUnlocked=true}},'4':{n:'Invisibility Cloak',c:2000,f:function(){game.inventory.push('Invisibility Cloak');game.player.invisible=true}},'5':{n:'Time Freeze Device',c:5000,f:function(){game.inventory.push('Time Freeze Device');game.timeFreeze=true}}};if(c&&items[c]){var it=items[c];if(game.crypto>=it.c){game.crypto-=it.c;it.f();showDialogue('Purchased!','You bought '+it.n+'!')}else showDialogue('Not enough INC','Need '+it.c+' INC.')}}}
+function skyCityTimeExchange(){showDialogue('Time Exchange','In Time movie style - hold forearms to transfer time.\n1. Give 3600s to a resident -> +200 INC\n2. Receive 3600s from a resident -> -200 INC\n3. Fight a resident for time (risky)');var c=prompt('1=Give, 2=Receive, 3=Fight');if(c==='1'){if(game.time>7200){game.time-=3600;game.crypto+=200;showDialogue('Transfer Complete','-3600s, +200 INC. You held forearms and transferred time.')}else showDialogue('Not enough time','Need >2 hours.')}else if(c==='2'){if(game.crypto>=200){game.crypto-=200;game.time+=3600;showDialogue('Transfer Complete','+3600s, -200 INC. A resident shared their time with you.')}else showDialogue('Not enough INC','Need 200 INC.')}else if(c==='3'){if(Math.random()<0.5){game.time+=7200;showDialogue('WON!','You won the forearm fight! +7200s!')}else{game.time-=3600;showDialogue('LOST','You lost the fight! -3600s. Time cops are watching!');game.notoriety+=15}}}
+function skyCityBuyProperty(){var cost=50000;if(game.crypto<cost){showDialogue('Not enough INC','Need '+cost+' INC for a Sky City Penthouse.');return}game.crypto-=cost;game.ownedProperties.push({id:'sky_penthouse',name:'Sky City Penthouse',price:cost,income:500,type:'luxury',titled:true,upgrades:0});closeOverlay();showDialogue('Purchased!','You now own a Sky City Penthouse! 500 INC/day!');if(window.jarvisSpeak)jarvisSpeak('Sky City Penthouse purchased!')}
+function skyCityTimeCops(){if(game.time>100000){if(Math.random()<0.4){game.time-=18000;showDialogue('TIME COP!','A Time Cop stopped you! Your forearm shows too much time. -5 hours confiscated!');game.notoriety+=10}else{showDialogue('Clear','A Time Cop checked your forearm. You passed.')}}else{showDialogue('All Clear','Time Cops ignored you. Your time is within normal range.')}}
+
+// --- Cloud Nybus (DBZ Flying Cloud) ---
+function summonCloudNybus(){
+if(!game.cloudNybusUnlocked){if(game.crypto>=CLOUD_NYBUS_COST){var c=prompt('Buy Cloud Nybus summon stone for '+CLOUD_NYBUS_COST+' INC? (y/n)');if(c==='y'||c==='Y'){game.crypto-=CLOUD_NYBUS_COST;game.cloudNybusUnlocked=true;showDialogue('Cloud Nybus Unlocked!','You can now summon the Cloud Nybus! Press C to summon/dismount.');if(window.jarvisSpeak)jarvisSpeak('Cloud Nybus unlocked!')}}else{showDialogue('Not enough INC','Need '+CLOUD_NYBUS_COST+' INC to unlock Cloud Nybus. Visit Sky City shop too.')}}return}
+if(game.cloudNybus){game.cloudNybus=null;game.player.onCloud=false;showDialogue('Dismounted','You stepped off the Cloud Nybus. It floats away.');if(window.jarvisSpeak)jarvisSpeak('Dismounted Cloud Nybus')}else{game.cloudNybus={x:game.player.x,y:game.player.y-20};game.player.onCloud=true;showDialogue('Cloud Nybus!','You summoned the Cloud Nybus! Fly around the city! Press C to dismount.');if(window.jarvisSpeak)jarvisSpeak('Cloud Nybus summoned!')}
+}
+
 // --- JARVIS Commands ---
 function registerJarvisCommands(){
 if(!window.jarvisRegisterCommand)return;
@@ -299,6 +423,15 @@ jarvisRegisterCommand('enroll school',function(){enrollSchool('high');return'Enr
 jarvisRegisterCommand('enroll college',function(){enrollSchool('college');return'Applying to Mega City University'});
 jarvisRegisterCommand('create business',function(){openOverlay('courthouse');return'Opening courthouse for business creation'});
 jarvisRegisterCommand('create crypto',function(){createCrypto();return'Creating your own crypto currency'});
+jarvisRegisterCommand('open phone',function(){openOverlay('phone');return'Opening phone'});
+jarvisRegisterCommand('check contacts',function(){return'You have '+game.contacts.length+' contacts'});
+jarvisRegisterCommand('fast travel',function(){openOverlay('fasttravel');return'Opening fast travel menu'});
+jarvisRegisterCommand('take hyperloop',function(){openOverlay('hyperloop');return'Opening hyperloop stations'});
+jarvisRegisterCommand('go to sky city',function(){enterSkyCity();return'Going to Sky City'});
+jarvisRegisterCommand('summon cloud',function(){summonCloudNybus();return'Summoning Cloud Nybus'});
+jarvisRegisterCommand('create key',function(){enterCave();return'Going to key forge'});
+jarvisRegisterCommand('check missions',function(){return'You have '+game.missionNotifications.length+' active missions on your phone'});
+jarvisRegisterCommand('check keys',function(){return'You have '+game.keys+' keys. Created keys: '+(game.createdKeys.length?game.createdKeys.join(', '):'none')});
 }
 
 // --- Game Start ---
@@ -314,10 +447,16 @@ jarvisAddTask('Enroll in school','Go to high school or college to earn time','ob
 jarvisAddTask('Earn Incentives Inc.','Work, gamble, or trade for INC crypto','objective');
 jarvisAddTask('Buy property','Own buildings for passive income','side');
 jarvisAddTask('Try hover vehicles','Visit the Hover Park for fast travel','side');
-jarvisAddTask('Survive a blackout','Avoid robots during blackouts','challenge');
+jarvisAddTask('Survive a blackout','Avoid robots during blackouts (15 min). Portals can help!','challenge');
 jarvisAddTask('Hack the Central Brain','Break into the city computer (need hacking 3)','challenge');
 jarvisAddTask('Create a business','File at the courthouse','side');
-jarvisAddTask('Talk to NPCs','Meet the people of Mega City','side');
+jarvisAddTask('Talk to NPCs','Meet the people of Mega City. Walk near them to auto-add contacts!','side');
+jarvisAddTask('Open your phone','Press P to access phone, contacts, messages, missions','side');
+jarvisAddTask('Try fast travel','Press F to fast travel or take the Hyperloop','side');
+jarvisAddTask('Create a key','Visit the Cave or Cliff Tunnel to forge magical keys','side');
+jarvisAddTask('Reach Sky City','Get 10,000 INC or 20 hours to buy Sky City access','challenge');
+jarvisAddTask('Summon Cloud Nybus','Unlock the flying cloud for fast travel','challenge');
+jarvisAddTask('Take futuristic electives','Robotics, Time Portal, Vehicle Creation, and more at school','side');
 }
 registerJarvisCommands();
 loop();
@@ -350,6 +489,22 @@ window.buyProperty=buyProperty;
 window.upgradeProperty=upgradeProperty;
 window.openOverlay=openOverlay;
 window.tryHack=tryHack;
+window.renderPhoneTab=renderPhoneTab;
+window.callContact=callContact;
+window.textContact=textContact;
+window.acceptMission=acceptMission;
+window.declineMission=declineMission;
+window.fastTravelTo=fastTravelTo;
+window.takeHyperloop=takeHyperloop;
+window.enterSkyCity=enterSkyCity;
+window.skyCityMission=skyCityMission;
+window.skyCityShop=skyCityShop;
+window.skyCityTimeExchange=skyCityTimeExchange;
+window.skyCityBuyProperty=skyCityBuyProperty;
+window.skyCityTimeCops=skyCityTimeCops;
+window.summonCloudNybus=summonCloudNybus;
+window.enterKeyCliff=enterKeyCliff;
+window.enterKeyTunnel=enterKeyTunnel;
 </script>
 </body>
 </html>
