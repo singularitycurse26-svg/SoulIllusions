@@ -69,6 +69,32 @@ def init_db():
             created_at TEXT DEFAULT (datetime('now'))
         )
     """)
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS game_tasks (
+            id TEXT PRIMARY KEY,
+            game_id INTEGER NOT NULL,
+            title TEXT NOT NULL,
+            description TEXT,
+            type TEXT DEFAULT 'objective',
+            completed INTEGER DEFAULT 0,
+            created_at TEXT DEFAULT (datetime('now')),
+            completed_at TEXT,
+            FOREIGN KEY (game_id) REFERENCES games(id)
+        )
+    """)
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS game_upgrades (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            game_id INTEGER NOT NULL,
+            agent TEXT,
+            request TEXT,
+            response TEXT,
+            upgrade_summary TEXT,
+            applied INTEGER DEFAULT 0,
+            created_at TEXT DEFAULT (datetime('now')),
+            FOREIGN KEY (game_id) REFERENCES games(id)
+        )
+    """)
     conn.commit()
     conn.close()
 
@@ -926,6 +952,16 @@ function startGame() {
   game.paused = false;
   initLevel();
   if (window.jarvisSetContext) jarvisSetContext({level: game.level, objective: game.objective, keys: game.keys});
+  // Initialize in-game tasks
+  if (window.jarvisAddTask) {
+    jarvisAddTask('Find the Ghost Key', 'Located in the upper-left area of Keyhouse', 'objective');
+    jarvisAddTask('Find the Matchstick Key', 'Hidden in the center-right section', 'objective');
+    jarvisAddTask('Find the Head Key', 'Near the top-right corner', 'objective');
+    jarvisAddTask('Unlock the main door', 'Requires all 3 keys', 'objective');
+    jarvisAddTask('Talk to Bode', 'Find Bode for hints about the keys', 'side');
+    jarvisAddTask('Talk to Kinsey', 'Kinsey may have useful information', 'side');
+    jarvisAddTask('Defeat all shadows', 'Eliminate the shadow enemies', 'challenge');
+  }
   loop();
 }
 
@@ -1010,6 +1046,7 @@ function interact() {
         game.inventory.push(item.name);
         showDialogue('Found', 'You found the ' + item.name + '! (' + game.keys + '/' + game.totalKeys + ' keys)');
         if (window.jarvisSpeak) jarvisSpeak('You found the ' + item.name);
+        if (window.jarvisGameCompleteTask) jarvisGameCompleteTask('Find the ' + item.name);
         if (window.jarvisSetContext) jarvisSetContext({level: game.level, objective: game.objective, keys: game.keys});
       } else if (item.type === 'health') {
         game.player.health = Math.min(100, game.player.health + 25);
@@ -1027,6 +1064,7 @@ function interact() {
           door.locked = false;
           showDialogue('Door Unlocked', 'You unlocked the main door! You escape Keyhouse!');
           if (window.jarvisSpeak) jarvisSpeak('Congratulations! You escaped Keyhouse!');
+          if (window.jarvisGameCompleteTask) jarvisGameCompleteTask('Unlock the main door');
           setTimeout(function() { victory(); }, 2000);
         } else if (!door.isExit) {
           door.locked = false;
@@ -1042,6 +1080,7 @@ function interact() {
     var dx = npc.x - p.x, dy = npc.y - p.y;
     if (Math.sqrt(dx*dx + dy*dy) < 40) {
       showDialogue(npc.name, npc.dialogue);
+      if (window.jarvisGameCompleteTask) jarvisGameCompleteTask('Talk to ' + npc.name);
     }
   });
 }
@@ -1249,7 +1288,10 @@ Requirements:
 - Score tracking, lives, game over screen
 - Keyboard controls
 - Visually appealing with matching color scheme
-- Fun and challenging gameplay{base_template}
+- Fun and challenging gameplay
+- Include in-game tasks/objectives that the player must complete
+- Call jarvisAddTask('Task Title', 'Description', 'objective') for each task when the game starts
+- Call jarvisGameCompleteTask('Task Title') when a task is completed{base_template}
 
 Output the complete HTML code:"""
     
@@ -1269,6 +1311,52 @@ Output the complete HTML code:"""
     return html
 
 
+def generate_game_with_ai_upgrade(current_html: str, upgrade_prompt: str) -> str:
+    """Modify an existing game's HTML using AI based on an upgrade request.
+    This is a synchronous wrapper used by the server for in-game agent upgrades.
+    """
+    cfg = load_agent_config()
+    llm = LLMInterface(cfg)
+    
+    # Truncate current HTML if too long to fit in context
+    max_html = 12000
+    html_for_prompt = current_html[:max_html]
+    if len(current_html) > max_html:
+        html_for_prompt += "\n<!-- ... truncated ... -->\n</body></html>"
+    
+    full_prompt = f"""You are modifying an existing HTML5 game. Here is the current game:
+
+```html
+{html_for_prompt}
+```
+
+Modification request: {upgrade_prompt}
+
+Apply the requested changes while keeping the game playable. Return the COMPLETE modified HTML file.
+Keep the JARVIS injection if present (the jarvisCellphone div and script). 
+Output only the HTML code:"""
+    
+    try:
+        result = asyncio.run(llm.generate(full_prompt, GAME_GEN_SYSTEM, max_tokens=8000))
+    except Exception as e:
+        print(f"[Games] AI upgrade failed: {e}")
+        return current_html
+    
+    # Clean up
+    if "```html" in result:
+        result = result.split("```html")[1].split("```")[0]
+    elif "```" in result:
+        result = result.split("```")[1].split("```")[0]
+    
+    result = result.strip()
+    if not result.startswith("<!DOCTYPE"):
+        result = "<!DOCTYPE html>\n" + result
+    
+    # Ensure JARVIS is injected
+    result = inject_jarvis(result)
+    
+    return result
+
 # --- JARVIS In-Game Control System ---
 JARVIS_INJECTION = '''
 <!-- JARVIS In-Game Control System -->
@@ -1285,32 +1373,47 @@ JARVIS_INJECTION = '''
   </svg>
 </div>
 
-<div id="jarvisPhone" style="display:none;position:fixed;bottom:75px;right:15px;width:320px;
-  background:linear-gradient(180deg,#0f0f1e,#1a1a2e);border:2px solid #0f3460;border-radius:20px;
-  z-index:99999;box-shadow:0 10px 40px rgba(0,0,0,0.7);overflow:hidden;font-family:'Segoe UI',sans-serif;">
+<!-- In-game tasks indicator badge -->
+<div id="jarvisTaskBadge" style="position:fixed;bottom:60px;right:20px;z-index:99998;
+  background:#e94560;color:#fff;border-radius:10px;padding:2px 8px;font-size:10px;
+  font-family:sans-serif;display:none;cursor:pointer;" onclick="jarvisToggle();jarvisSwitchTab('tasks');">
+  <span id="jarvisTaskCount">0</span> tasks
+</div>
+
+<div id="jarvisPhone" style="display:none;position:fixed;bottom:75px;right:15px;width:340px;
+  max-height:520px;overflow-y:auto;background:linear-gradient(180deg,#0f0f1e,#1a1a2e);
+  border:2px solid #0f3460;border-radius:20px;z-index:99999;
+  box-shadow:0 10px 40px rgba(0,0,0,0.7);font-family:'Segoe UI',sans-serif;">
   
   <div style="background:linear-gradient(90deg,#e94560,#0f3460);padding:12px 16px;color:#fff;
-    font-size:14px;font-weight:bold;display:flex;justify-content:space-between;align-items:center;">
+    font-size:14px;font-weight:bold;display:flex;justify-content:space-between;align-items:center;
+    position:sticky;top:0;z-index:1;">
     <span>JARVIS</span>
     <span onclick="jarvisToggle()" style="cursor:pointer;font-size:18px;">&times;</span>
   </div>
   
   <div style="padding:10px;">
-    <div id="jarvisTabs" style="display:flex;gap:5px;margin-bottom:10px;">
+    <!-- Tab buttons: Voice | Text | Agent | Tasks -->
+    <div id="jarvisTabs" style="display:flex;gap:3px;margin-bottom:10px;flex-wrap:wrap;">
       <button id="jarvisTabVoice" onclick="jarvisSwitchTab('voice')" 
-        style="flex:1;padding:8px;background:#0f3460;border:none;border-radius:8px;color:#fff;cursor:pointer;font-size:12px;">Voice</button>
+        style="flex:1;padding:7px 4px;background:#0f3460;border:none;border-radius:8px;color:#fff;cursor:pointer;font-size:11px;">Voice</button>
       <button id="jarvisTabText" onclick="jarvisSwitchTab('text')" 
-        style="flex:1;padding:8px;background:#1a1a2e;border:1px solid #333;border-radius:8px;color:#888;cursor:pointer;font-size:12px;">Text</button>
+        style="flex:1;padding:7px 4px;background:#1a1a2e;border:1px solid #333;border-radius:8px;color:#888;cursor:pointer;font-size:11px;">Text</button>
+      <button id="jarvisTabAgent" onclick="jarvisSwitchTab('agent')" 
+        style="flex:1;padding:7px 4px;background:#1a1a2e;border:1px solid #333;border-radius:8px;color:#888;cursor:pointer;font-size:11px;">Agent</button>
+      <button id="jarvisTabTasks" onclick="jarvisSwitchTab('tasks')" 
+        style="flex:1;padding:7px 4px;background:#1a1a2e;border:1px solid #333;border-radius:8px;color:#888;cursor:pointer;font-size:11px;">Tasks</button>
     </div>
     
+    <!-- Voice Panel -->
     <div id="jarvisVoicePanel">
-      <div id="jarvisStatus" style="text-align:center;padding:15px;color:#888;font-size:12px;">
+      <div id="jarvisStatus" style="text-align:center;padding:12px;color:#888;font-size:12px;">
         Tap to speak to JARVIS
       </div>
       <button id="jarvisMicBtn" onclick="jarvisToggleVoice()" 
         style="width:60px;height:60px;border-radius:50%;background:#e94560;border:none;
         margin:0 auto;display:block;cursor:pointer;transition:all 0.3s;"
-        title="Hold to speak">
+        title="Tap to speak">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"
           style="vertical-align:middle;">
           <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
@@ -1320,6 +1423,7 @@ JARVIS_INJECTION = '''
       </button>
     </div>
     
+    <!-- Text Command Panel -->
     <div id="jarvisTextPanel" style="display:none;">
       <textarea id="jarvisTextInput" placeholder="Type a command to JARVIS..." rows="3"
         style="width:100%;background:#1a1a2e;border:1px solid #333;border-radius:8px;
@@ -1329,28 +1433,77 @@ JARVIS_INJECTION = '''
         border-radius:8px;color:#fff;cursor:pointer;font-size:13px;font-weight:bold;">Send Command</button>
     </div>
     
-    <div id="jarvisLog" style="margin-top:10px;max-height:150px;overflow-y:auto;
+    <!-- Agent Chat Panel -->
+    <div id="jarvisAgentPanel" style="display:none;">
+      <div style="margin-bottom:8px;">
+        <select id="jarvisAgentSelect" 
+          style="width:100%;padding:8px;background:#1a1a2e;border:1px solid #333;border-radius:8px;color:#fff;font-size:12px;">
+          <option value="soulillusions">SoulIllusions Agent</option>
+          <option value="prime">Prime Agent</option>
+          <option value="both">Both Agents</option>
+        </select>
+      </div>
+      <div id="jarvisAgentLog" style="max-height:200px;overflow-y:auto;background:#0a0a15;
+        border-radius:8px;padding:8px;font-size:11px;color:#888;margin-bottom:8px;min-height:80px;">
+        <div style="color:#e94560;font-weight:bold;">Agent Chat Online.</div>
+        <div style="color:#888;margin-top:4px;">Talk to the AI agents to upgrade your game, request changes, add features, or get help. Agents can communicate with the game maker.</div>
+      </div>
+      <textarea id="jarvisAgentInput" placeholder="Message the AI agent..." rows="2"
+        style="width:100%;background:#1a1a2e;border:1px solid #333;border-radius:8px;
+        color:#fff;padding:10px;font-size:13px;resize:none;font-family:sans-serif;"></textarea>
+      <button onclick="jarvisSendAgentMessage()" 
+        style="width:100%;padding:10px;margin-top:8px;background:#0f3460;border:none;
+        border-radius:8px;color:#fff;cursor:pointer;font-size:13px;font-weight:bold;">Send to Agent</button>
+      <div style="margin-top:6px;font-size:10px;color:#555;">
+        Agents can modify the game, add features, change levels, and communicate with the game maker.
+      </div>
+    </div>
+    
+    <!-- Tasks Panel -->
+    <div id="jarvisTasksPanel" style="display:none;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+        <strong style="color:#c4a35a;font-size:13px;">In-Game Tasks</strong>
+        <button onclick="jarvisAddTaskPrompt()" 
+          style="background:#0f3460;border:none;border-radius:6px;color:#fff;padding:4px 10px;cursor:pointer;font-size:11px;">+ Add</button>
+      </div>
+      <div id="jarvisTasksList" style="max-height:250px;overflow-y:auto;">
+        <div style="color:#888;font-size:11px;text-align:center;padding:10px;">No active tasks. Tasks will appear here during gameplay.</div>
+      </div>
+    </div>
+    
+    <!-- Shared Log -->
+    <div id="jarvisLog" style="margin-top:10px;max-height:120px;overflow-y:auto;
       background:#0a0a15;border-radius:8px;padding:8px;font-size:11px;color:#888;">
       <div style="color:#e94560;font-weight:bold;">JARVIS Online.</div>
-      <div style="color:#888;">Try: "start game", "open settings", "go left", "attack", "jump"</div>
+      <div style="color:#888;">Voice/Text: control game. Agent: talk to AI. Tasks: view objectives.</div>
     </div>
     
     <div style="margin-top:8px;font-size:10px;color:#555;text-align:center;">
-      JARVIS can control menus, settings, and gameplay
+      JARVIS controls menus, gameplay, agents & tasks
     </div>
   </div>
 </div>
 
 <script>
-// === JARVIS In-Game Control System ===
+// === JARVIS In-Game Control System v2 ===
 var jarvisState = {
   open: false,
   listening: false,
   recognition: null,
   synth: window.speechSynthesis || null,
   gameCommands: {},
-  gameContext: null
+  gameContext: null,
+  gameId: null,
+  tasks: [],
+  agentBusy: false,
+  serverUrl: window.location.origin || 'http://localhost:7860'
 };
+
+// Detect game ID from URL if present
+(function() {
+  var match = window.location.search.match(/[?&]game_id=(\d+)/);
+  if (match) jarvisState.gameId = parseInt(match[1]);
+})();
 
 function jarvisToggle() {
   var phone = document.getElementById('jarvisPhone');
@@ -1361,25 +1514,23 @@ function jarvisToggle() {
   if (jarvisState.open) {
     jarvisLog("JARVIS ready. How can I help?", 'system');
     jarvisInitVoice();
+    jarvisLoadTasks();
   }
 }
 
 function jarvisSwitchTab(tab) {
-  var voicePanel = document.getElementById('jarvisVoicePanel');
-  var textPanel = document.getElementById('jarvisTextPanel');
-  var voiceBtn = document.getElementById('jarvisTabVoice');
-  var textBtn = document.getElementById('jarvisTabText');
-  if (tab === 'voice') {
-    voicePanel.style.display = 'block';
-    textPanel.style.display = 'none';
-    voiceBtn.style.background = '#0f3460'; voiceBtn.style.color = '#fff';
-    textBtn.style.background = '#1a1a2e'; textBtn.style.color = '#888';
-  } else {
-    voicePanel.style.display = 'none';
-    textPanel.style.display = 'block';
-    textBtn.style.background = '#0f3460'; textBtn.style.color = '#fff';
-    voiceBtn.style.background = '#1a1a2e'; voiceBtn.style.color = '#888';
+  var panels = {voice:'jarvisVoicePanel',text:'jarvisTextPanel',agent:'jarvisAgentPanel',tasks:'jarvisTasksPanel'};
+  var btns = {voice:'jarvisTabVoice',text:'jarvisTabText',agent:'jarvisTabAgent',tasks:'jarvisTabTasks'};
+  for (var key in panels) {
+    var el = document.getElementById(panels[key]);
+    if (el) el.style.display = key === tab ? 'block' : 'none';
+    var btn = document.getElementById(btns[key]);
+    if (btn) {
+      if (key === tab) { btn.style.background = '#0f3460'; btn.style.color = '#fff'; btn.style.border = 'none'; }
+      else { btn.style.background = '#1a1a2e'; btn.style.color = '#888'; btn.style.border = '1px solid #333'; }
+    }
   }
+  if (tab === 'tasks') jarvisRenderTasks();
 }
 
 function jarvisInitVoice() {
@@ -1452,8 +1603,21 @@ function jarvisSendText() {
 
 function jarvisLog(msg, type) {
   var log = document.getElementById('jarvisLog');
+  if (!log) return;
   var div = document.createElement('div');
-  var colors = {'user':'#4fc3f7','system':'#e94560','error':'#ef4444','action':'#22c55e','jarvis':'#e94560'};
+  var colors = {'user':'#4fc3f7','system':'#e94560','error':'#ef4444','action':'#22c55e','jarvis':'#e94560','agent':'#c4a35a','task':'#22c55e'};
+  div.style.color = colors[type] || '#888';
+  div.style.marginTop = '4px';
+  div.textContent = msg;
+  log.appendChild(div);
+  log.scrollTop = log.scrollHeight;
+}
+
+function jarvisAgentLog(msg, type) {
+  var log = document.getElementById('jarvisAgentLog');
+  if (!log) return;
+  var div = document.createElement('div');
+  var colors = {'user':'#4fc3f7','agent':'#c4a35a','error':'#ef4444','system':'#e94560','action':'#22c55e'};
   div.style.color = colors[type] || '#888';
   div.style.marginTop = '4px';
   div.textContent = msg;
@@ -1470,8 +1634,235 @@ function jarvisSpeak(text) {
   jarvisLog("JARVIS: " + text, 'jarvis');
 }
 
+// === Agent Communication ===
+function jarvisSendAgentMessage() {
+  var input = document.getElementById('jarvisAgentInput');
+  var msg = input.value.trim();
+  if (!msg || jarvisState.agentBusy) return;
+  var agentType = document.getElementById('jarvisAgentSelect').value;
+  
+  jarvisAgentLog("You: " + msg, 'user');
+  input.value = '';
+  jarvisState.agentBusy = true;
+  jarvisAgentLog("Sending to " + (agentType === 'both' ? 'both agents' : agentType + ' agent') + "...", 'system');
+  
+  // Build context for agents
+  var context = {
+    game_id: jarvisState.gameId,
+    game_context: jarvisState.gameContext,
+    tasks: jarvisState.tasks,
+    message: msg,
+    agent: agentType
+  };
+  
+  fetch(jarvisState.serverUrl + '/api/games/agent-chat', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify(context)
+  }).then(function(r) { return r.json(); }).then(function(data) {
+    jarvisState.agentBusy = false;
+    if (data.error) {
+      jarvisAgentLog("Error: " + data.error, 'error');
+      return;
+    }
+    if (data.soulillusions_response) {
+      jarvisAgentLog("[SoulIllusions Agent]: " + data.soulillusions_response, 'agent');
+    }
+    if (data.prime_response) {
+      jarvisAgentLog("[Prime Agent]: " + data.prime_response, 'agent');
+    }
+    if (data.response) {
+      jarvisAgentLog("[Agent]: " + data.response, 'agent');
+    }
+    if (data.game_upgraded) {
+      jarvisAgentLog("Game has been upgraded! Changes: " + (data.upgrade_summary || 'applied'), 'action');
+      jarvisLog("Agent upgraded the game!", 'action');
+      if (data.new_html) {
+        jarvisApplyGameUpgrade(data.new_html);
+      }
+    }
+    if (data.new_tasks && data.new_tasks.length) {
+      data.new_tasks.forEach(function(t) { jarvisAddTask(t.title, t.description, t.type || 'objective'); });
+      jarvisAgentLog("New tasks added by agent.", 'action');
+    }
+    if (data.speak) jarvisSpeak(data.speak);
+  }).catch(function(e) {
+    jarvisState.agentBusy = false;
+    jarvisAgentLog("Connection error: " + e, 'error');
+  });
+}
+
+function jarvisApplyGameUpgrade(newHtml) {
+  // Try to apply upgrade live without full reload
+  try {
+    var parser = new DOMParser();
+    var newDoc = parser.parseFromString(newHtml, 'text/html');
+    // Replace canvas/script content
+    var newCanvas = newDoc.querySelector('canvas');
+    var oldCanvas = document.querySelector('canvas');
+    if (newCanvas && oldCanvas) {
+      var parent = oldCanvas.parentNode;
+      parent.replaceChild(newCanvas, oldCanvas);
+    }
+    // Replace script tags
+    var newScripts = newDoc.querySelectorAll('script');
+    newScripts.forEach(function(s) {
+      if (s.id && s.id !== 'jarvis-script') {
+        var old = document.getElementById(s.id);
+        if (old) old.remove();
+        var ns = document.createElement('script');
+        ns.id = s.id;
+        ns.textContent = s.textContent;
+        document.body.appendChild(ns);
+      }
+    });
+    jarvisAgentLog("Game upgrade applied live!", 'action');
+  } catch(e) {
+    jarvisAgentLog("Upgrade needs page reload to take effect.", 'system');
+  }
+}
+
+// === In-Game Tasks System ===
+function jarvisAddTask(title, description, type) {
+  type = type || 'objective';
+  var task = {
+    id: 'task_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
+    title: title,
+    description: description || '',
+    type: type,
+    completed: false,
+    created_at: Date.now()
+  };
+  jarvisState.tasks.push(task);
+  jarvisRenderTasks();
+  jarvisUpdateTaskBadge();
+  jarvisLog("New task: " + title, 'task');
+  // Notify game
+  jarvisExecute('task_added', {task: task});
+  // Save to server if game ID known
+  if (jarvisState.gameId) {
+    fetch(jarvisState.serverUrl + '/api/games/' + jarvisState.gameId + '/tasks', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(task)
+    }).catch(function(){});
+  }
+  return task;
+}
+
+function jarvisCompleteTask(taskId) {
+  jarvisState.tasks.forEach(function(t) {
+    if (t.id === taskId) t.completed = true;
+  });
+  jarvisRenderTasks();
+  jarvisUpdateTaskBadge();
+  jarvisExecute('task_completed', {taskId: taskId});
+  if (jarvisState.gameId) {
+    fetch(jarvisState.serverUrl + '/api/games/' + jarvisState.gameId + '/tasks/' + taskId + '/complete', {
+      method: 'POST'
+    }).catch(function(){});
+  }
+}
+
+function jarvisRemoveTask(taskId) {
+  jarvisState.tasks = jarvisState.tasks.filter(function(t) { return t.id !== taskId; });
+  jarvisRenderTasks();
+  jarvisUpdateTaskBadge();
+}
+
+function jarvisRenderTasks() {
+  var el = document.getElementById('jarvisTasksList');
+  if (!el) return;
+  if (!jarvisState.tasks.length) {
+    el.innerHTML = '<div style="color:#888;font-size:11px;text-align:center;padding:10px;">No active tasks. Tasks will appear here during gameplay.</div>';
+    return;
+  }
+  el.innerHTML = jarvisState.tasks.map(function(t) {
+    var color = t.completed ? '#22c55e' : (t.type === 'objective' ? '#c4a35a' : '#4fc3f7');
+    var checkStyle = t.completed ? 'text-decoration:line-through;opacity:0.6;' : '';
+    return '<div style="padding:8px;border-bottom:1px solid rgba(255,255,255,0.05);">' +
+      '<div style="display:flex;align-items:start;gap:6px;">' +
+      '<span onclick="jarvisCompleteTask(\\'' + t.id + '\\')" style="cursor:pointer;color:' + color + ';font-size:14px;">' + (t.completed ? '\\u2713' : '\\u25CB') + '</span>' +
+      '<div style="flex:1;">' +
+      '<div style="color:' + color + ';font-size:12px;font-weight:bold;' + checkStyle + '">' + t.title + '</div>' +
+      (t.description ? '<div style="color:#888;font-size:10px;margin-top:2px;' + checkStyle + '">' + t.description + '</div>' : '') +
+      '<div style="margin-top:3px;font-size:9px;color:#555;">' + t.type + (t.completed ? ' | Done' : '') + '</div>' +
+      '</div>' +
+      '<span onclick="jarvisRemoveTask(\\'' + t.id + '\\')" style="cursor:pointer;color:#555;font-size:12px;">&times;</span>' +
+      '</div></div>';
+  }).join('');
+}
+
+function jarvisUpdateTaskBadge() {
+  var badge = document.getElementById('jarvisTaskBadge');
+  var count = document.getElementById('jarvisTaskCount');
+  var active = jarvisState.tasks.filter(function(t) { return !t.completed; }).length;
+  if (active > 0) {
+    badge.style.display = 'block';
+    count.textContent = active;
+  } else {
+    badge.style.display = 'none';
+  }
+}
+
+function jarvisAddTaskPrompt() {
+  var title = prompt('Task title:');
+  if (!title) return;
+  var desc = prompt('Task description (optional):') || '';
+  var type = prompt('Task type (objective, side, challenge, upgrade):', 'objective') || 'objective';
+  jarvisAddTask(title, desc, type);
+}
+
+function jarvisLoadTasks() {
+  if (!jarvisState.gameId) return;
+  fetch(jarvisState.serverUrl + '/api/games/' + jarvisState.gameId + '/tasks').then(function(r) {
+    return r.json();
+  }).then(function(data) {
+    if (data.tasks && data.tasks.length) {
+      jarvisState.tasks = data.tasks;
+      jarvisRenderTasks();
+      jarvisUpdateTaskBadge();
+    }
+  }).catch(function(){});
+}
+
+// === Command Processing ===
 function jarvisProcessCommand(cmd) {
   cmd = cmd.toLowerCase().trim();
+  
+  // --- Agent routing commands ---
+  if (cmd.match(/ask.*agent|talk.*to.*agent|tell.*agent|agent.*help|upgrade.*game|modify.*game|add.*feature|change.*game|customize.*game/)) {
+    jarvisSwitchTab('agent');
+    jarvisAgentLog("Switched to agent chat. Tell the agents what you want to change or upgrade.", 'system');
+    // Auto-fill the message if there's a specific request
+    var agentMsg = cmd.replace(/.*(?:ask agent|talk to agent|tell agent|agent help|upgrade game|modify game|add feature|change game|customize game)/, '').trim();
+    if (agentMsg) {
+      document.getElementById('jarvisAgentInput').value = agentMsg;
+    }
+    return;
+  }
+  
+  // --- Task commands ---
+  if (cmd.match(/show.*task|task.*list|what.*task|objectives?/)) {
+    jarvisSwitchTab('tasks');
+    jarvisSpeak("Showing your tasks.");
+    return;
+  }
+  if (cmd.match(/add.*task|new.*task|new.*objective/)) {
+    jarvisAddTaskPrompt();
+    return;
+  }
+  if (cmd.match(/complete.*task|done.*task|finish.*task/)) {
+    var taskTitle = cmd.replace(/.*(?:complete task|done task|finish task)/, '').trim();
+    var found = jarvisState.tasks.find(function(t) { return !t.completed && t.title.toLowerCase().includes(taskTitle); });
+    if (found) {
+      jarvisCompleteTask(found.id);
+      jarvisSpeak("Task completed: " + found.title);
+    } else {
+      jarvisSpeak("No matching task found.");
+    }
+    return;
+  }
   
   // --- Menu/Settings Commands ---
   if (cmd.match(/start.*game|begin|play|new game/)) {
@@ -1510,7 +1901,7 @@ function jarvisProcessCommand(cmd) {
     return;
   }
   if (cmd.match(/help|what.*can.*you.*do|commands/)) {
-    jarvisSpeak("I can control the game. Try saying go left, go right, jump, attack, interact, open inventory, or use item.");
+    jarvisSpeak("I can control the game with voice or text. Use the Agent tab to talk to AI agents for upgrades. Use Tasks tab to view objectives.");
     return;
   }
   
@@ -1653,13 +2044,10 @@ function jarvisSimKey(key) {
 
 function jarvisExecute(action, params) {
   params = params || {};
-  // Dispatch custom event that games can listen for
   var ev = new CustomEvent('jarvis-command', {
     detail: {action: action, params: params, timestamp: Date.now()}
   });
   document.dispatchEvent(ev);
-  
-  // Also call global game hook if registered
   if (typeof window.jarvisGameHook === 'function') {
     try { window.jarvisGameHook(action, params); } catch(e) {}
   }
@@ -1674,6 +2062,24 @@ function jarvisRegisterCommand(phrase, handler) {
 // Games set context: jarvisSetContext({level: 3, objective: 'Find the key'})
 function jarvisSetContext(ctx) {
   jarvisState.gameContext = ctx;
+  if (ctx.tasks) {
+    ctx.tasks.forEach(function(t) {
+      if (!jarvisState.tasks.find(function(existing) { return existing.title === t.title; })) {
+        jarvisAddTask(t.title, t.description || '', t.type || 'objective');
+      }
+    });
+  }
+}
+
+// Games add tasks: jarvisAddTask('Find the key', 'Search the house for the golden key')
+// Already defined above - this is for game scripts to call
+
+// Games complete tasks: jarvisGameCompleteTask('Find the key')
+function jarvisGameCompleteTask(title) {
+  var task = jarvisState.tasks.find(function(t) { return !t.completed && t.title.toLowerCase().includes(title.toLowerCase()); });
+  if (task) {
+    jarvisCompleteTask(task.id);
+  }
 }
 
 // Expose globally
@@ -1681,11 +2087,37 @@ window.jarvisToggle = jarvisToggle;
 window.jarvisSwitchTab = jarvisSwitchTab;
 window.jarvisToggleVoice = jarvisToggleVoice;
 window.jarvisSendText = jarvisSendText;
+window.jarvisSendAgentMessage = jarvisSendAgentMessage;
 window.jarvisRegisterCommand = jarvisRegisterCommand;
 window.jarvisSetContext = jarvisSetContext;
 window.jarvisExecute = jarvisExecute;
 window.jarvisSpeak = jarvisSpeak;
 window.jarvisState = jarvisState;
+window.jarvisAddTask = jarvisAddTask;
+window.jarvisCompleteTask = jarvisCompleteTask;
+window.jarvisRemoveTask = jarvisRemoveTask;
+window.jarvisGameCompleteTask = jarvisGameCompleteTask;
+window.jarvisRenderTasks = jarvisRenderTasks;
+</script>
+'''
+DEFAULT_TASKS_SCRIPT = '''
+<script>
+// === Default In-Game Tasks Auto-Init ===
+// This runs after JARVIS is loaded and adds default tasks if no game-specific tasks exist
+(function() {
+  function jarvisInitDefaultTasks() {
+    if (!window.jarvisState || !window.jarvisAddTask) return;
+    // Only add defaults if no tasks have been registered yet
+    if (jarvisState.tasks.length > 0) return;
+    jarvisAddTask('Start the game', 'Press Start or say "start game" to begin', 'objective');
+    jarvisAddTask('Learn the controls', 'Use arrow keys/WASD to move, Space to jump/attack, E to interact', 'side');
+    jarvisAddTask('Reach the objective', 'Complete the main goal of the game', 'objective');
+    jarvisAddTask('Explore the area', 'Look around for hidden items or secrets', 'side');
+    jarvisAddTask('Try JARVIS Agent chat', 'Open the Agent tab to talk to AI agents for game upgrades', 'side');
+  }
+  // Run after a short delay to let game scripts initialize first
+  setTimeout(jarvisInitDefaultTasks, 1500);
+})();
 </script>
 '''
 
@@ -1694,11 +2126,12 @@ def inject_jarvis(html: str) -> str:
     """Inject JARVIS in-game control system into game HTML."""
     if "jarvisCellphone" in html:
         return html  # Already injected
+    injection = JARVIS_INJECTION + "\n" + DEFAULT_TASKS_SCRIPT
     # Inject before </body>
     if "</body>" in html:
-        return html.replace("</body>", JARVIS_INJECTION + "\n</body>")
+        return html.replace("</body>", injection + "\n</body>")
     # Fallback: append
-    return html + JARVIS_INJECTION
+    return html + injection
 
 
 def generate_game_from_template(title: str, genre: str, prompt: str) -> str:
@@ -1837,6 +2270,101 @@ class GameManager:
     def get_genres(self) -> List[str]:
         """Get available game genres."""
         return list(TEMPLATES.keys()) + ["custom", "rpg", "strategy", "card", "adventure"]
+    
+    def update_game(self, game_id: int, html_content: str = None, title: str = None,
+                    description: str = None, metadata: dict = None) -> dict:
+        """Update a game's content (used by agents for in-game upgrades)."""
+        conn = sqlite3.connect(str(GAMES_DB))
+        c = conn.cursor()
+        c.execute("SELECT id, file_path FROM games WHERE id = ?", (game_id,))
+        row = c.fetchone()
+        if not row:
+            conn.close()
+            return {"error": "Game not found"}
+        
+        updates = []
+        params = []
+        if html_content is not None:
+            updates.append("html_content = ?")
+            params.append(html_content)
+            # Also update the file
+            if row[1]:
+                try:
+                    Path(row[1]).write_text(html_content, encoding='utf-8')
+                except:
+                    pass
+        if title is not None:
+            updates.append("title = ?")
+            params.append(title)
+        if description is not None:
+            updates.append("description = ?")
+            params.append(description)
+        if metadata is not None:
+            updates.append("metadata = ?")
+            params.append(json.dumps(metadata))
+        
+        if updates:
+            params.append(game_id)
+            c.execute(f"UPDATE games SET {', '.join(updates)} WHERE id = ?", params)
+            conn.commit()
+        conn.close()
+        return {"status": "updated", "game_id": game_id}
+    
+    def add_task(self, game_id: int, task_id: str, title: str, description: str = "",
+                 task_type: str = "objective") -> dict:
+        """Add a task to a game."""
+        conn = sqlite3.connect(str(GAMES_DB))
+        c = conn.cursor()
+        c.execute(
+            "INSERT OR REPLACE INTO game_tasks (id, game_id, title, description, type) VALUES (?, ?, ?, ?, ?)",
+            (task_id, game_id, title, description, task_type)
+        )
+        conn.commit()
+        conn.close()
+        return {"status": "added", "task_id": task_id, "game_id": game_id}
+    
+    def get_tasks(self, game_id: int) -> List[dict]:
+        """Get all tasks for a game."""
+        conn = sqlite3.connect(str(GAMES_DB))
+        c = conn.cursor()
+        c.execute("SELECT id, game_id, title, description, type, completed, created_at, completed_at FROM game_tasks WHERE game_id = ? ORDER BY created_at", (game_id,))
+        rows = c.fetchall()
+        conn.close()
+        return [{"id": r[0], "game_id": r[1], "title": r[2], "description": r[3],
+                 "type": r[4], "completed": bool(r[5]), "created_at": r[6], "completed_at": r[7]} for r in rows]
+    
+    def complete_task(self, game_id: int, task_id: str) -> dict:
+        """Mark a task as completed."""
+        conn = sqlite3.connect(str(GAMES_DB))
+        c = conn.cursor()
+        c.execute("UPDATE game_tasks SET completed = 1, completed_at = datetime('now') WHERE id = ? AND game_id = ?", (task_id, game_id))
+        conn.commit()
+        conn.close()
+        return {"status": "completed", "task_id": task_id, "game_id": game_id}
+    
+    def record_upgrade(self, game_id: int, agent: str, request: str, response: str,
+                       upgrade_summary: str = "", applied: bool = False) -> dict:
+        """Record a game upgrade made by an agent."""
+        conn = sqlite3.connect(str(GAMES_DB))
+        c = conn.cursor()
+        c.execute(
+            "INSERT INTO game_upgrades (game_id, agent, request, response, upgrade_summary, applied) VALUES (?, ?, ?, ?, ?, ?)",
+            (game_id, agent, request, response, upgrade_summary, 1 if applied else 0)
+        )
+        upgrade_id = c.lastrowid
+        conn.commit()
+        conn.close()
+        return {"id": upgrade_id, "game_id": game_id, "agent": agent, "status": "recorded"}
+    
+    def get_upgrades(self, game_id: int) -> List[dict]:
+        """Get all upgrades for a game."""
+        conn = sqlite3.connect(str(GAMES_DB))
+        c = conn.cursor()
+        c.execute("SELECT id, game_id, agent, request, upgrade_summary, applied, created_at FROM game_upgrades WHERE game_id = ? ORDER BY created_at DESC", (game_id,))
+        rows = c.fetchall()
+        conn.close()
+        return [{"id": r[0], "game_id": r[1], "agent": r[2], "request": r[3],
+                 "upgrade_summary": r[4], "applied": bool(r[5]), "created_at": r[6]} for r in rows]
 
 
 # Singleton

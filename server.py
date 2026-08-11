@@ -6289,6 +6289,281 @@ async def games_genres():
         return {"genres": [], "error": str(e)}
 
 
+# ==================== IN-GAME AGENT CHAT & TASKS API ====================
+
+@app.post("/api/games/agent-chat")
+async def games_agent_chat(request: Request):
+    """In-game agent communication endpoint.
+    
+    Allows players to talk to SoulIllusions Agent and/or Prime Agent from within the game.
+    Agents can:
+    - Respond with advice, tips, or narrative
+    - Request game upgrades from the text-to-game maker
+    - Add new tasks/objectives to the game
+    - Modify game content (levels, characters, mechanics)
+    """
+    mod = _get_games_module()
+    try:
+        body = await request.json()
+        message = body.get("message", "")
+        agent_type = body.get("agent", "soulillusions")  # soulillusions, prime, both
+        game_id = body.get("game_id")
+        game_context = body.get("game_context", {})
+        tasks = body.get("tasks", [])
+        
+        if not message:
+            return JSONResponse({"error": "No message provided"}, status_code=400)
+        
+        result = {"game_upgraded": False, "new_tasks": []}
+        
+        # Get game info if available
+        game_info = None
+        if mod and game_id:
+            try:
+                mgr = mod.get_game_manager()
+                game_info = mgr.get_game(game_id)
+            except:
+                pass
+        
+        # Build context for agents
+        agent_context = (
+            f"You are communicating with a player who is currently in-game. "
+            f"Game: {game_info['title'] if game_info else 'Unknown'} "
+            f"(Genre: {game_info['genre'] if game_info else 'Unknown'}). "
+            f"Game context: {json.dumps(game_context)}. "
+            f"Current tasks: {json.dumps(tasks)}. "
+            f"Player message: {message}. "
+            f"Respond helpfully. If the player wants to upgrade or modify the game, "
+            f"describe what changes you would make. If they want new tasks or objectives, "
+            f"suggest them. Keep responses concise and actionable."
+        )
+        
+        # Send to SoulIllusions Agent
+        if agent_type in ("soulillusions", "both"):
+            agent_mod = _get_agent_module()
+            if agent_mod:
+                try:
+                    agent = agent_mod.get_agent()
+                    agent_result = agent.send_prompt(agent_context)
+                    if isinstance(agent_result, dict):
+                        result["soulillusions_response"] = agent_result.get("response", str(agent_result))
+                    else:
+                        result["soulillusions_response"] = str(agent_result)
+                except Exception as e:
+                    result["soulillusions_response"] = f"Agent error: {e}"
+            else:
+                # Fallback to LLM generate
+                try:
+                    llm_resp = await _llm_generate_internal(agent_context)
+                    result["soulillusions_response"] = llm_resp
+                except Exception as e:
+                    result["soulillusions_response"] = f"Agent not available: {e}"
+        
+        # Send to Prime Agent
+        if agent_type in ("prime", "both"):
+            try:
+                prime_result = _subproc.run(
+                    ["prime-agent", "-p", agent_context],
+                    capture_output=True, text=True, timeout=60
+                )
+                result["prime_response"] = prime_result.stdout.strip() or "Prime Agent not available"
+            except FileNotFoundError:
+                result["prime_response"] = "Prime Agent not installed"
+            except _subproc.TimeoutExpired:
+                result["prime_response"] = "Prime Agent timed out"
+            except Exception as e:
+                result["prime_response"] = f"Prime Agent error: {e}"
+        
+        # Check if the message is a game upgrade request
+        upgrade_keywords = ["upgrade", "add", "change", "modify", "make", "create", "fix",
+                           "increase", "decrease", "improve", "new level", "new enemy",
+                           "new item", "new character", "harder", "easier", "faster"]
+        is_upgrade_request = any(kw in message.lower() for kw in upgrade_keywords)
+        
+        if is_upgrade_request and mod and game_id:
+            try:
+                mgr = mod.get_game_manager()
+                # Use AI to generate the upgrade
+                upgrade_prompt = (
+                    f"Modify this HTML5 game based on the player's request: '{message}'. "
+                    f"Game genre: {game_info['genre'] if game_info else 'arcade'}. "
+                    f"Keep the same structure but apply the requested changes. "
+                    f"Return only the complete HTML file."
+                )
+                current_html = mgr.get_game_html(game_id)
+                if current_html:
+                    try:
+                        new_html = await asyncio.get_event_loop().run_in_executor(
+                            None, mod.generate_game_with_ai_upgrade, current_html, upgrade_prompt
+                        )
+                        if new_html and new_html != current_html:
+                            mgr.update_game(game_id, html_content=new_html)
+                            mgr.record_upgrade(
+                                game_id, agent_type, message,
+                                "Game upgraded via in-game agent chat",
+                                upgrade_summary=message[:200], applied=True
+                            )
+                            result["game_upgraded"] = True
+                            result["upgrade_summary"] = message[:200]
+                            result["new_html"] = new_html
+                            result["speak"] = "Game upgraded successfully!"
+                    except Exception as e:
+                        result["upgrade_error"] = str(e)
+            except Exception as e:
+                result["upgrade_error"] = str(e)
+        
+        # Check if the agent suggested new tasks
+        if agent_type in ("soulillusions", "both") and "soulillusions_response" in result:
+            # Parse for task suggestions
+            resp = result["soulillusions_response"].lower()
+            if "task:" in resp or "objective:" in resp or "new task" in resp:
+                # Simple task extraction
+                lines = result["soulillusions_response"].split('\n')
+                for line in lines:
+                    line = line.strip()
+                    if line.lower().startswith("task:") or line.lower().startswith("objective:"):
+                        task_title = line.split(":", 1)[1].strip() if ":" in line else line
+                        if task_title and mod and game_id:
+                            task_id = f"task_{int(time.time())}_{len(tasks)}"
+                            mgr = mod.get_game_manager()
+                            mgr.add_task(game_id, task_id, task_title, "", "objective")
+                            result["new_tasks"].append({"title": task_title, "description": "", "type": "objective"})
+        
+        return result
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+
+async def _llm_generate_internal(prompt: str, system: str = "") -> str:
+    """Internal helper to generate LLM response."""
+    backend_url = config.get("gpu_backend_url", "")
+    if backend_url:
+        try:
+            payload = json.dumps({"model": "qwen2.5:14b", "prompt": prompt, "system": system,
+                                  "stream": False, "options": {"num_predict": 1024, "temperature": 0.7}}).encode()
+            req = urllib.request.Request(f"{backend_url}/api/llm/generate", data=payload,
+                                         headers={"Content-Type": "application/json"}, method="POST")
+            with urllib.request.urlopen(req, timeout=120) as resp:
+                data = json.loads(resp.read().decode())
+                return data.get("response", "")
+        except:
+            pass
+    # Try local Ollama
+    try:
+        payload = json.dumps({"model": "qwen2.5:7b", "prompt": prompt, "system": system,
+                              "stream": False, "options": {"num_predict": 1024, "temperature": 0.7}}).encode()
+        req = urllib.request.Request("http://localhost:11434/api/generate", data=payload,
+                                     headers={"Content-Type": "application/json"}, method="POST")
+        with urllib.request.urlopen(req, timeout=90) as resp:
+            data = json.loads(resp.read().decode())
+            return data.get("response", "")
+    except Exception as e:
+        return f"LLM not available: {e}"
+
+
+@app.get("/api/games/{game_id}/tasks")
+async def games_get_tasks(game_id: int):
+    """Get all tasks for a game."""
+    mod = _get_games_module()
+    if not mod:
+        return {"tasks": []}
+    try:
+        mgr = mod.get_game_manager()
+        return {"tasks": mgr.get_tasks(game_id)}
+    except Exception as e:
+        return {"tasks": [], "error": str(e)}
+
+
+@app.post("/api/games/{game_id}/tasks")
+async def games_add_task(game_id: int, request: Request):
+    """Add a task to a game."""
+    mod = _get_games_module()
+    if not mod:
+        return JSONResponse({"error": "text_to_games.py not available"}, status_code=503)
+    try:
+        body = await request.json()
+        title = body.get("title", "")
+        description = body.get("description", "")
+        task_type = body.get("type", "objective")
+        task_id = body.get("id", f"task_{int(time.time())}_{game_id}")
+        if not title:
+            return JSONResponse({"error": "Title required"}, status_code=400)
+        mgr = mod.get_game_manager()
+        return mgr.add_task(game_id, task_id, title, description, task_type)
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+
+@app.post("/api/games/{game_id}/tasks/{task_id}/complete")
+async def games_complete_task(game_id: int, task_id: str):
+    """Mark a task as completed."""
+    mod = _get_games_module()
+    if not mod:
+        return JSONResponse({"error": "text_to_games.py not available"}, status_code=503)
+    try:
+        mgr = mod.get_game_manager()
+        return mgr.complete_task(game_id, task_id)
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+
+@app.post("/api/games/{game_id}/upgrade")
+async def games_upgrade(game_id: int, request: Request):
+    """Upgrade a game using AI (called by agents or directly)."""
+    mod = _get_games_module()
+    if not mod:
+        return JSONResponse({"error": "text_to_games.py not available"}, status_code=503)
+    try:
+        body = await request.json()
+        upgrade_request = body.get("request", "")
+        agent = body.get("agent", "user")
+        if not upgrade_request:
+            return JSONResponse({"error": "No upgrade request provided"}, status_code=400)
+        
+        mgr = mod.get_game_manager()
+        game = mgr.get_game(game_id)
+        if not game:
+            return JSONResponse({"error": "Game not found"}, status_code=404)
+        
+        current_html = mgr.get_game_html(game_id)
+        if not current_html:
+            return JSONResponse({"error": "Game HTML not found"}, status_code=404)
+        
+        upgrade_prompt = (
+            f"Modify this HTML5 game based on this request: '{upgrade_request}'. "
+            f"Game genre: {game['genre']}. Keep the same structure but apply changes. "
+            f"Return only the complete HTML file."
+        )
+        
+        try:
+            new_html = await asyncio.get_event_loop().run_in_executor(
+                None, mod.generate_game_with_ai_upgrade, current_html, upgrade_prompt
+            )
+            if new_html and new_html != current_html:
+                mgr.update_game(game_id, html_content=new_html)
+                mgr.record_upgrade(game_id, agent, upgrade_request, "Upgraded", upgrade_request[:200], applied=True)
+                return {"status": "upgraded", "game_id": game_id, "html": new_html}
+            else:
+                return {"status": "no_change", "game_id": game_id}
+        except Exception as e:
+            return JSONResponse({"error": f"Upgrade failed: {e}"}, status_code=500)
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+
+@app.get("/api/games/{game_id}/upgrades")
+async def games_get_upgrades(game_id: int):
+    """Get upgrade history for a game."""
+    mod = _get_games_module()
+    if not mod:
+        return {"upgrades": []}
+    try:
+        mgr = mod.get_game_manager()
+        return {"upgrades": mgr.get_upgrades(game_id)}
+    except Exception as e:
+        return {"upgrades": [], "error": str(e)}
+
+
 # ==================== PHONE VERIFICATION API ====================
 def _get_verify_module():
     try:
