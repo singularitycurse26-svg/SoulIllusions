@@ -1,0 +1,19 @@
+{
+  "prompt": "medium shot of Kai changes his route. He walks past the time beggar from Scene 2. The man's\n  Direction: Deliver with measured intensity\nclock reads 00:01:33. Kai pauses. He has 992 hours., cinematic, dramatic lighting, film still, movie quality, 4k, highly detailed",
+  "script_segment": "Kai changes his route. He walks past the time beggar from Scene 2. The man's\n  [Direction: Deliver with measured intensity]\nclock reads 00:01:33. Kai pauses. He has 992 hours.",
+  "duration": 5,
+  "model": "ltx",
+  "style": "cinematic",
+  "num_frames": 97,
+  "fps": 24,
+  "steps": 30,
+  "seed": null,
+  "transition": "cut",
+  "transition_duration": 0.5,
+  "scene_number": 107,
+  "status": "pending",
+  "video_path": "",
+  "job_id": "",
+  "retake_count": 0,
+  "created_at": 1786289862.5585008
+}

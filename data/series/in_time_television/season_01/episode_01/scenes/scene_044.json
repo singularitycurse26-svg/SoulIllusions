@@ -1,0 +1,19 @@
+{
+  "prompt": "tracking shot of Neither do you, in the grand scheme.\n\nKAI: I've got twenty hours. That's more than you.\n\nMAN: smiles Twenty hours., cinematic, dramatic lighting, film still, movie quality, 4k, highly detailed",
+  "script_segment": "Neither do you, in the grand scheme.\n\nKAI: I've got twenty hours. That's more than you.\n\nMAN: (smiles) Twenty hours.",
+  "duration": 5,
+  "model": "ltx",
+  "style": "cinematic",
+  "num_frames": 97,
+  "fps": 24,
+  "steps": 30,
+  "seed": null,
+  "transition": "cut",
+  "transition_duration": 0.5,
+  "scene_number": 44,
+  "status": "pending",
+  "video_path": "",
+  "job_id": "",
+  "retake_count": 0,
+  "created_at": 1786289862.123933
+}

@@ -1,0 +1,19 @@
+{
+  "prompt": "low angle shot of sity\nfast - not because they're in a hurry, but because every second matters. Digital\n  Direction: Deliver with measured intensity\nbillboards flash time prices: \"BREAD: 45, cinematic, dramatic lighting, film still, movie quality, 4k, highly detailed",
+  "script_segment": "sity]\nfast - not because they're in a hurry, but because every second matters. Digital\n  [Direction: Deliver with measured intensity]\nbillboards flash time prices: \"BREAD: 45",
+  "duration": 5,
+  "model": "ltx",
+  "style": "cinematic",
+  "num_frames": 97,
+  "fps": 24,
+  "steps": 30,
+  "seed": null,
+  "transition": "cut",
+  "transition_duration": 0.5,
+  "scene_number": 13,
+  "status": "pending",
+  "video_path": "",
+  "job_id": "",
+  "retake_count": 0,
+  "created_at": 1786289861.8902729
+}

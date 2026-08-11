@@ -1,0 +1,19 @@
+{
+  "prompt": "close-up detail of DAYTON PROCESSING FACTORY - DAY\nLIGHTING: Naturalistic, motivated by scene environment\nSOUND: Ambient environmental audio, subtle tension layer\n\n\nKai at work, but distracted., cinematic, dramatic lighting, film still, movie quality, 4k, highly detailed",
+  "script_segment": "DAYTON PROCESSING FACTORY - DAY]\n[LIGHTING: Naturalistic, motivated by scene environment]\n[SOUND: Ambient environmental audio, subtle tension layer]\n\n\nKai at work, but distracted.",
+  "duration": 5,
+  "model": "ltx",
+  "style": "cinematic",
+  "num_frames": 97,
+  "fps": 24,
+  "steps": 30,
+  "seed": null,
+  "transition": "cut",
+  "transition_duration": 0.5,
+  "scene_number": 96,
+  "status": "pending",
+  "video_path": "",
+  "job_id": "",
+  "retake_count": 0,
+  "created_at": 1786289862.4666905
+}

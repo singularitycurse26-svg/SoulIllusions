@@ -1,0 +1,19 @@
+{
+  "prompt": "aerial view of tic, motivated by scene environment\nSOUND: Ambient environmental audio, subtle tension layer\n\n\nInside the factory, hundreds of workers sit at, cinematic, dramatic lighting, film still, movie quality, 4k, highly detailed",
+  "script_segment": "tic, motivated by scene environment]\n[SOUND: Ambient environmental audio, subtle tension layer]\n\n\nInside the factory, hundreds of workers sit at",
+  "duration": 5,
+  "model": "ltx",
+  "style": "cinematic",
+  "num_frames": 97,
+  "fps": 24,
+  "steps": 30,
+  "seed": null,
+  "transition": "cut",
+  "transition_duration": 0.5,
+  "scene_number": 22,
+  "status": "pending",
+  "video_path": "",
+  "job_id": "",
+  "retake_count": 0,
+  "created_at": 1786289861.9583201
+}

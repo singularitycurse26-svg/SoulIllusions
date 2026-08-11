@@ -1,0 +1,19 @@
+{
+  "prompt": "close-up detail of Kai's clock reads 20:31:45 - he earned just over an hour for a full\n  Direction: Deliver with measured intensity\nshift. He buys a food packet 15 minutes and eats it walking., cinematic, dramatic lighting, film still, movie quality, 4k, highly detailed",
+  "script_segment": "Kai's clock reads 20:31:45 - he earned just over an hour for a full\n  [Direction: Deliver with measured intensity]\nshift. He buys a food packet (15 minutes) and eats it walking.",
+  "duration": 5,
+  "model": "ltx",
+  "style": "cinematic",
+  "num_frames": 97,
+  "fps": 24,
+  "steps": 30,
+  "seed": null,
+  "transition": "cut",
+  "transition_duration": 0.5,
+  "scene_number": 32,
+  "status": "pending",
+  "video_path": "",
+  "job_id": "",
+  "retake_count": 0,
+  "created_at": 1786289862.0414963
+}

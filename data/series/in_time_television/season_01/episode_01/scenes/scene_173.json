@@ -1,0 +1,19 @@
+{
+  "prompt": "low angle shot of ============================================================, cinematic, dramatic lighting, film still, movie quality, 4k, highly detailed",
+  "script_segment": "SCENE 015\n============================================================",
+  "duration": 5,
+  "model": "ltx",
+  "style": "cinematic",
+  "num_frames": 97,
+  "fps": 24,
+  "steps": 30,
+  "seed": null,
+  "transition": "cut",
+  "transition_duration": 0.5,
+  "scene_number": 173,
+  "status": "pending",
+  "video_path": "",
+  "job_id": "",
+  "retake_count": 0,
+  "created_at": 1786289863.0408342
+}

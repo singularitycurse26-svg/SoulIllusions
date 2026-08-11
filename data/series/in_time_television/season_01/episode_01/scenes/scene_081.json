@@ -1,0 +1,19 @@
+{
+  "prompt": "wide cinematic shot of ORION VEX sits at an outdoor cafe, drinking coffee that costs 5 minutes. He\n  Direction: Deliver with measured intensity\nwear Orion Vex (Appears 25, actually 340 years old. Pale skin, silver-white hair (dyed - a Fringe fashion statement). Wears layered, eclectic clothing from different decades he's lived through. Multiple time capsules strapped to his body. A knowing, world-weary smile.)., cinematic, dramatic lighting, film still, movie quality, 4k, highly detailed",
+  "script_segment": "ORION VEX sits at an outdoor cafe, drinking coffee that costs 5 minutes. He\n  [Direction: Deliver with measured intensity]\nwear",
+  "duration": 5,
+  "model": "ltx",
+  "style": "cinematic",
+  "num_frames": 97,
+  "fps": 24,
+  "steps": 30,
+  "seed": null,
+  "transition": "cut",
+  "transition_duration": 0.5,
+  "scene_number": 81,
+  "status": "pending",
+  "video_path": "",
+  "job_id": "",
+  "retake_count": 0,
+  "created_at": 1786289862.376569
+}

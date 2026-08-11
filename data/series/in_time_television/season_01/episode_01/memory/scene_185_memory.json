@@ -1,0 +1,19 @@
+{
+  "series_id": "in_time_television",
+  "season_number": 1,
+  "episode_number": 1,
+  "scene_number": 185,
+  "timeline_id": "nested_7",
+  "characters_on_screen": [],
+  "characters_referenced": [],
+  "location": "unknown",
+  "time_of_day": "unknown",
+  "lighting": "unknown",
+  "emotional_tone": "neutral",
+  "urgency_score": 0.3,
+  "prompt_context": "",
+  "visual_anchors_used": {},
+  "learnings_applied": [],
+  "quality_assessment": null,
+  "created_at": 1786289863.1168041
+}

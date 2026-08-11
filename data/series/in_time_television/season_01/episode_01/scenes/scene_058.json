@@ -1,0 +1,19 @@
+{
+  "prompt": "dramatic close-up of He doesn't have a reader - those cost months of time.\n\nHe paces. He looks at his clock: 998:22:17., cinematic, dramatic lighting, film still, movie quality, 4k, highly detailed",
+  "script_segment": "He doesn't have a reader - those cost months of time.\n\nHe paces. He looks at his clock: 998:22:17.",
+  "duration": 5,
+  "model": "ltx",
+  "style": "cinematic",
+  "num_frames": 97,
+  "fps": 24,
+  "steps": 30,
+  "seed": null,
+  "transition": "cut",
+  "transition_duration": 0.5,
+  "scene_number": 58,
+  "status": "pending",
+  "video_path": "",
+  "job_id": "",
+  "retake_count": 0,
+  "created_at": 1786289862.2303007
+}

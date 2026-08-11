@@ -1,0 +1,19 @@
+{
+  "prompt": "dramatic close-up of KAI: quietly How about we talk at the station? I'll walk with you.\n\nTIME-KEEPER 1: That's not how this works., cinematic, dramatic lighting, film still, movie quality, 4k, highly detailed",
+  "script_segment": "KAI: (quietly) How about we talk at the station? I'll walk with you.\n\nTIME-KEEPER 1: That's not how this works.",
+  "duration": 5,
+  "model": "ltx",
+  "style": "cinematic",
+  "num_frames": 97,
+  "fps": 24,
+  "steps": 30,
+  "seed": null,
+  "transition": "cut",
+  "transition_duration": 0.5,
+  "scene_number": 186,
+  "status": "pending",
+  "video_path": "",
+  "job_id": "",
+  "retake_count": 0,
+  "created_at": 1786289863.1193156
+}

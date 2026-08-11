@@ -1,0 +1,19 @@
+{
+  "prompt": "wide cinematic shot of Was presumed to have crossed to Greenwich.\n\nSABLE: An analyst with a century of time giving it away in Dayton., cinematic, dramatic lighting, film still, movie quality, 4k, highly detailed",
+  "script_segment": "Was presumed to have crossed to Greenwich.\n\nSABLE: An analyst with a century of time giving it away in Dayton.",
+  "duration": 5,
+  "model": "ltx",
+  "style": "cinematic",
+  "num_frames": 97,
+  "fps": 24,
+  "steps": 30,
+  "seed": null,
+  "transition": "cut",
+  "transition_duration": 0.5,
+  "scene_number": 137,
+  "status": "pending",
+  "video_path": "",
+  "job_id": "",
+  "retake_count": 0,
+  "created_at": 1786289862.7482755
+}

@@ -1,0 +1,19 @@
+{
+  "prompt": "over-the-shoulder shot of op is a cluttered space filled with old technology, time capsules,\n  Direction: Deliver with measured intensity\nand curiosities from different decades., cinematic, dramatic lighting, film still, movie quality, 4k, highly detailed",
+  "script_segment": "op is a cluttered space filled with old technology, time capsules,\n  [Direction: Deliver with measured intensity]\nand curiosities from different decades.",
+  "duration": 5,
+  "model": "ltx",
+  "style": "cinematic",
+  "num_frames": 97,
+  "fps": 24,
+  "steps": 30,
+  "seed": null,
+  "transition": "cut",
+  "transition_duration": 0.5,
+  "scene_number": 159,
+  "status": "pending",
+  "video_path": "",
+  "job_id": "",
+  "retake_count": 0,
+  "created_at": 1786289862.9297504
+}

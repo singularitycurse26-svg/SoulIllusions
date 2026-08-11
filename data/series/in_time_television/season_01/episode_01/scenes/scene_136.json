@@ -1,0 +1,19 @@
+{
+  "prompt": "close-up detail of Former Time\n  Direction: Deliver with measured intensity\nAuthority analyst. Worked in the Algorithm Division. Disappeared six months ago., cinematic, dramatic lighting, film still, movie quality, 4k, highly detailed",
+  "script_segment": "Former Time\n  [Direction: Deliver with measured intensity]\nAuthority analyst. Worked in the Algorithm Division. Disappeared six months ago.",
+  "duration": 5,
+  "model": "ltx",
+  "style": "cinematic",
+  "num_frames": 97,
+  "fps": 24,
+  "steps": 30,
+  "seed": null,
+  "transition": "cut",
+  "transition_duration": 0.5,
+  "scene_number": 136,
+  "status": "pending",
+  "video_path": "",
+  "job_id": "",
+  "retake_count": 0,
+  "created_at": 1786289862.735955
+}

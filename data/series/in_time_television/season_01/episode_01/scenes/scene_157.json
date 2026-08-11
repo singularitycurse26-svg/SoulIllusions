@@ -1,0 +1,19 @@
+{
+  "prompt": "low angle shot of - INT. ORION'S SHOP - THE FRINGE - NIGHT\n\nCAMERA: Establishing shot. SCENE 14 - INT., cinematic, dramatic lighting, film still, movie quality, 4k, highly detailed",
+  "script_segment": "SCENE 14 - INT. ORION'S SHOP - THE FRINGE - NIGHT\n\n[CAMERA: Establishing shot. SCENE 14 - INT.",
+  "duration": 5,
+  "model": "ltx",
+  "style": "cinematic",
+  "num_frames": 97,
+  "fps": 24,
+  "steps": 30,
+  "seed": null,
+  "transition": "cut",
+  "transition_duration": 0.5,
+  "scene_number": 157,
+  "status": "pending",
+  "video_path": "",
+  "job_id": "",
+  "retake_count": 0,
+  "created_at": 1786289862.8950362
+}

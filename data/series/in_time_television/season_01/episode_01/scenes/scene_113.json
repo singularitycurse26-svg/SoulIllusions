@@ -1,0 +1,19 @@
+{
+  "prompt": "wide cinematic shot of WOMAN: quietly I've got him. Dayton worker, gave away a week to a beggar.\nHe's got more than that. A lot more.\n\n\n============================================================, cinematic, dramatic lighting, film still, movie quality, 4k, highly detailed",
+  "script_segment": "WOMAN: (quietly) I've got him. Dayton worker, gave away a week to a beggar.\nHe's got more than that. A lot more.\n\n\n============================================================",
+  "duration": 5,
+  "model": "ltx",
+  "style": "cinematic",
+  "num_frames": 97,
+  "fps": 24,
+  "steps": 30,
+  "seed": null,
+  "transition": "cut",
+  "transition_duration": 0.5,
+  "scene_number": 113,
+  "status": "pending",
+  "video_path": "",
+  "job_id": "",
+  "retake_count": 0,
+  "created_at": 1786289862.5928507
+}

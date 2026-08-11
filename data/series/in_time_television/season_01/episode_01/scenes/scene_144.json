@@ -1,0 +1,19 @@
+{
+  "prompt": "close-up detail of A dead analyst's secrets just walked into\n  Direction: Deliver with measured intensity\nDayton in someone's pocket., cinematic, dramatic lighting, film still, movie quality, 4k, highly detailed",
+  "script_segment": "A dead analyst's secrets just walked into\n  [Direction: Deliver with measured intensity]\nDayton in someone's pocket.",
+  "duration": 5,
+  "model": "ltx",
+  "style": "cinematic",
+  "num_frames": 97,
+  "fps": 24,
+  "steps": 30,
+  "seed": null,
+  "transition": "cut",
+  "transition_duration": 0.5,
+  "scene_number": 144,
+  "status": "pending",
+  "video_path": "",
+  "job_id": "",
+  "retake_count": 0,
+  "created_at": 1786289862.8062773
+}

@@ -1,0 +1,166 @@
+{
+  "series_id": "in_time_television",
+  "season_number": 1,
+  "episode_number": 1,
+  "character_states": {},
+  "location_states": {},
+  "active_plot_threads": [],
+  "emotional_arc": [],
+  "visual_continuity": {
+    "time_of_day": "unknown",
+    "lighting": "unknown",
+    "weather": "unknown",
+    "color_tone": "unknown"
+  },
+  "scene_history": [],
+  "last_scene_state": null,
+  "narrative_stack": [
+    {
+      "timeline_id": "main",
+      "scene_number": 68,
+      "character_states": {},
+      "visual_state": {
+        "time_of_day": "unknown",
+        "lighting": "unknown",
+        "weather": "unknown",
+        "color_tone": "unknown"
+      },
+      "last_scene_state": {},
+      "emotional_tone": "neutral",
+      "urgency_score": 0.5,
+      "return_trigger": "END NESTED",
+      "depth": 1,
+      "pushed_at_scene": 68,
+      "pushed_at_time": 1786289862.2978747
+    },
+    {
+      "timeline_id": "nested_1",
+      "scene_number": 136,
+      "character_states": {},
+      "visual_state": {
+        "time_of_day": "unknown",
+        "lighting": "unknown",
+        "weather": "unknown",
+        "color_tone": "unknown"
+      },
+      "last_scene_state": {},
+      "emotional_tone": "neutral",
+      "urgency_score": 0.5,
+      "return_trigger": "END VISION",
+      "depth": 2,
+      "pushed_at_scene": 136,
+      "pushed_at_time": 1786289862.744535
+    },
+    {
+      "timeline_id": "vision_2",
+      "scene_number": 138,
+      "character_states": {},
+      "visual_state": {
+        "time_of_day": "unknown",
+        "lighting": "unknown",
+        "weather": "unknown",
+        "color_tone": "unknown"
+      },
+      "last_scene_state": {},
+      "emotional_tone": "neutral",
+      "urgency_score": 0.5,
+      "return_trigger": "END VISION",
+      "depth": 3,
+      "pushed_at_scene": 138,
+      "pushed_at_time": 1786289862.7637737
+    },
+    {
+      "timeline_id": "vision_3",
+      "scene_number": 140,
+      "character_states": {},
+      "visual_state": {
+        "time_of_day": "unknown",
+        "lighting": "unknown",
+        "weather": "unknown",
+        "color_tone": "unknown"
+      },
+      "last_scene_state": {},
+      "emotional_tone": "neutral",
+      "urgency_score": 0.5,
+      "return_trigger": "END VISION",
+      "depth": 4,
+      "pushed_at_scene": 140,
+      "pushed_at_time": 1786289862.7809985
+    },
+    {
+      "timeline_id": "vision_4",
+      "scene_number": 154,
+      "character_states": {},
+      "visual_state": {
+        "time_of_day": "unknown",
+        "lighting": "unknown",
+        "weather": "unknown",
+        "color_tone": "unknown"
+      },
+      "last_scene_state": {},
+      "emotional_tone": "neutral",
+      "urgency_score": 0.5,
+      "return_trigger": "END NESTED",
+      "depth": 5,
+      "pushed_at_scene": 154,
+      "pushed_at_time": 1786289862.87759
+    },
+    {
+      "timeline_id": "nested_5",
+      "scene_number": 162,
+      "character_states": {},
+      "visual_state": {
+        "time_of_day": "unknown",
+        "lighting": "unknown",
+        "weather": "unknown",
+        "color_tone": "unknown"
+      },
+      "last_scene_state": {},
+      "emotional_tone": "neutral",
+      "urgency_score": 0.5,
+      "return_trigger": "END VISION",
+      "depth": 6,
+      "pushed_at_scene": 162,
+      "pushed_at_time": 1786289862.9588068
+    },
+    {
+      "timeline_id": "vision_6",
+      "scene_number": 171,
+      "character_states": {},
+      "visual_state": {
+        "time_of_day": "unknown",
+        "lighting": "unknown",
+        "weather": "unknown",
+        "color_tone": "unknown"
+      },
+      "last_scene_state": {},
+      "emotional_tone": "neutral",
+      "urgency_score": 0.5,
+      "return_trigger": "END NESTED",
+      "depth": 7,
+      "pushed_at_scene": 171,
+      "pushed_at_time": 1786289863.0289972
+    },
+    {
+      "timeline_id": "nested_7",
+      "scene_number": 202,
+      "character_states": {},
+      "visual_state": {
+        "time_of_day": "unknown",
+        "lighting": "unknown",
+        "weather": "unknown",
+        "color_tone": "unknown"
+      },
+      "last_scene_state": {},
+      "emotional_tone": "neutral",
+      "urgency_score": 0.5,
+      "return_trigger": "END VISION",
+      "depth": 8,
+      "pushed_at_scene": 202,
+      "pushed_at_time": 1786289863.240182
+    }
+  ],
+  "active_timeline": "vision_8",
+  "created_at": 1786289639.0275223,
+  "updated_at": 1786289863.240182
+}

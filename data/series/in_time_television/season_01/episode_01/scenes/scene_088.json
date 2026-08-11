@@ -1,0 +1,19 @@
+{
+  "prompt": "close-up detail of ORION: Of course they are. A hundred years in the hands of someone who's never\n  Direction: Deliver with measured intensity\nhad more than a day., cinematic, dramatic lighting, film still, movie quality, 4k, highly detailed",
+  "script_segment": "ORION: Of course they are. A hundred years in the hands of someone who's never\n  [Direction: Deliver with measured intensity]\nhad more than a day.",
+  "duration": 5,
+  "model": "ltx",
+  "style": "cinematic",
+  "num_frames": 97,
+  "fps": 24,
+  "steps": 30,
+  "seed": null,
+  "transition": "cut",
+  "transition_duration": 0.5,
+  "scene_number": 88,
+  "status": "pending",
+  "video_path": "",
+  "job_id": "",
+  "retake_count": 0,
+  "created_at": 1786289862.4176764
+}

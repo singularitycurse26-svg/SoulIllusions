@@ -1,0 +1,19 @@
+{
+  "prompt": "medium shot of - INT. MARSHALL ZONE TIME-KEEPER HQ - NIGHT\n\nCAMERA: Establishing shot. SCENE 12 - INT., cinematic, dramatic lighting, film still, movie quality, 4k, highly detailed",
+  "script_segment": "SCENE 12 - INT. MARSHALL ZONE TIME-KEEPER HQ - NIGHT\n\n[CAMERA: Establishing shot. SCENE 12 - INT.",
+  "duration": 5,
+  "model": "ltx",
+  "style": "cinematic",
+  "num_frames": 97,
+  "fps": 24,
+  "steps": 30,
+  "seed": null,
+  "transition": "cut",
+  "transition_duration": 0.5,
+  "scene_number": 131,
+  "status": "pending",
+  "video_path": "",
+  "job_id": "",
+  "retake_count": 0,
+  "created_at": 1786289862.7057433
+}

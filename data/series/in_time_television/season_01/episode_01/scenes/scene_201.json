@@ -1,0 +1,19 @@
+{
+  "prompt": "wide cinematic shot of \"\n  Direction: Deliver with measured intensity\n\nEND OF EPISODE 1\n  Direction: Deliver with measured intensity\n\nNEXT TIME ON IN TIME: Kai enters The Fringe and meets Orion Vex. Orion Vex (Appears 25, actually 340 years old. Pale skin, silver-white hair (dyed - a Fringe fashion statement). Wears layered, eclectic clothing from different decades he's lived through. Multiple time capsules strapped to his body. A knowing, world-weary smile.)., cinematic, dramatic lighting, film still, movie quality, 4k, highly detailed",
+  "script_segment": "\"\n  [Direction: Deliver with measured intensity]\n\nEND OF EPISODE 1\n  [Direction: Deliver with measured intensity]\n\nNEXT TIME ON IN TIME: Kai enters The Fringe and meets Orion Vex.",
+  "duration": 5,
+  "model": "ltx",
+  "style": "cinematic",
+  "num_frames": 97,
+  "fps": 24,
+  "steps": 30,
+  "seed": null,
+  "transition": "cut",
+  "transition_duration": 0.5,
+  "scene_number": 201,
+  "status": "pending",
+  "video_path": "",
+  "job_id": "",
+  "retake_count": 0,
+  "created_at": 1786289863.2230847
+}

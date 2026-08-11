@@ -1,0 +1,19 @@
+{
+  "prompt": "medium shot of Left pocket. Take it. Don't let them find it.\n\nThe man's clock hits 00:00:00. His eyes go blank. He slides down the wall. Dead., cinematic, dramatic lighting, film still, movie quality, 4k, highly detailed",
+  "script_segment": "Left pocket. Take it. Don't let them find it.\n\nThe man's clock hits 00:00:00. His eyes go blank. He slides down the wall. Dead.",
+  "duration": 5,
+  "model": "ltx",
+  "style": "cinematic",
+  "num_frames": 97,
+  "fps": 24,
+  "steps": 30,
+  "seed": null,
+  "transition": "cut",
+  "transition_duration": 0.5,
+  "scene_number": 51,
+  "status": "pending",
+  "video_path": "",
+  "job_id": "",
+  "retake_count": 0,
+  "created_at": 1786289862.1716118
+}

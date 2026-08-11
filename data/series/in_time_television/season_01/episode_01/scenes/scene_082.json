@@ -1,0 +1,19 @@
+{
+  "prompt": "dramatic close-up of s a mix of old and new clothes - a vintage leather jacket over a modern\n  Direction: Deliver with measured intensity\nshirt., cinematic, dramatic lighting, film still, movie quality, 4k, highly detailed",
+  "script_segment": "s a mix of old and new clothes - a vintage leather jacket over a modern\n  [Direction: Deliver with measured intensity]\nshirt.",
+  "duration": 5,
+  "model": "ltx",
+  "style": "cinematic",
+  "num_frames": 97,
+  "fps": 24,
+  "steps": 30,
+  "seed": null,
+  "transition": "cut",
+  "transition_duration": 0.5,
+  "scene_number": 82,
+  "status": "pending",
+  "video_path": "",
+  "job_id": "",
+  "retake_count": 0,
+  "created_at": 1786289862.3825855
+}

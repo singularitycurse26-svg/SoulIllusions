@@ -1,0 +1,19 @@
+{
+  "prompt": "medium shot of Who did this to you?\n\nMAN: Time-keepers. I had... something they wanted. coughs Listen. I don't have\n  Direction: Deliver with measured intensity\nlong., cinematic, dramatic lighting, film still, movie quality, 4k, highly detailed",
+  "script_segment": "Who did this to you?\n\nMAN: Time-keepers. I had... something they wanted. (coughs) Listen. I don't have\n  [Direction: Deliver with measured intensity]\nlong.",
+  "duration": 5,
+  "model": "ltx",
+  "style": "cinematic",
+  "num_frames": 97,
+  "fps": 24,
+  "steps": 30,
+  "seed": null,
+  "transition": "cut",
+  "transition_duration": 0.5,
+  "scene_number": 43,
+  "status": "pending",
+  "video_path": "",
+  "job_id": "",
+  "retake_count": 0,
+  "created_at": 1786289862.1182444
+}

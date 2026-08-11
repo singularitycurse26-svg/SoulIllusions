@@ -1,0 +1,19 @@
+{
+  "prompt": "dramatic close-up of pause Find out who died. Not who received -\n  Direction: Deliver with measured intensity\nwho gave. The dead man's identity is the key., cinematic, dramatic lighting, film still, movie quality, 4k, highly detailed",
+  "script_segment": "(pause) Find out who died. Not who received -\n  [Direction: Deliver with measured intensity]\nwho gave. The dead man's identity is the key.",
+  "duration": 5,
+  "model": "ltx",
+  "style": "cinematic",
+  "num_frames": 97,
+  "fps": 24,
+  "steps": 30,
+  "seed": null,
+  "transition": "cut",
+  "transition_duration": 0.5,
+  "scene_number": 90,
+  "status": "pending",
+  "video_path": "",
+  "job_id": "",
+  "retake_count": 0,
+  "created_at": 1786289862.4295552
+}

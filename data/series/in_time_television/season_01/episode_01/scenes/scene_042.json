@@ -1,0 +1,19 @@
+{
+  "prompt": "dramatic close-up of The man looks up - he's been beaten. His face is bloody.\nBut his eyes are calm, almost peaceful.\n\nMAN: You... you're from here.\n\nKAI: Yeah., cinematic, dramatic lighting, film still, movie quality, 4k, highly detailed",
+  "script_segment": "The man looks up - he's been beaten. His face is bloody.\nBut his eyes are calm, almost peaceful.\n\nMAN: You... you're from here.\n\nKAI: Yeah.",
+  "duration": 5,
+  "model": "ltx",
+  "style": "cinematic",
+  "num_frames": 97,
+  "fps": 24,
+  "steps": 30,
+  "seed": null,
+  "transition": "cut",
+  "transition_duration": 0.5,
+  "scene_number": 42,
+  "status": "pending",
+  "video_path": "",
+  "job_id": "",
+  "retake_count": 0,
+  "created_at": 1786289862.1112192
+}

@@ -1,0 +1,19 @@
+{
+  "prompt": "tracking shot of Sable stares at the tech.\n\nSABLE: A man from the Algorithm Division gave away a hundred years to a strange, cinematic, dramatic lighting, film still, movie quality, 4k, highly detailed",
+  "script_segment": "Sable stares at the tech.\n\nSABLE: A man from the Algorithm Division gave away a hundred years to a strange",
+  "duration": 5,
+  "model": "ltx",
+  "style": "cinematic",
+  "num_frames": 97,
+  "fps": 24,
+  "steps": 30,
+  "seed": null,
+  "transition": "cut",
+  "transition_duration": 0.5,
+  "scene_number": 140,
+  "status": "pending",
+  "video_path": "",
+  "job_id": "",
+  "retake_count": 0,
+  "created_at": 1786289862.7739928
+}

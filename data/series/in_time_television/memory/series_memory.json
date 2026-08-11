@@ -1,0 +1,110 @@
+{
+  "series_id": "in_time_television",
+  "world_state": {
+    "locations": {},
+    "objects": {},
+    "rules": {},
+    "time_of_day_defaults": {}
+  },
+  "characters": {},
+  "visual_anchors": {},
+  "plot_threads": [],
+  "style_anchors": {
+    "cinematography": "cinematic, dramatic lighting",
+    "color_palette": "",
+    "recurring_visual_motifs": []
+  },
+  "narrative_stack": [
+    {
+      "series_id": "in_time_television",
+      "season": 1,
+      "episode": 1,
+      "scene": 68,
+      "timeline_id": "nested_1",
+      "parent_timeline": "main",
+      "type": "nested",
+      "depth": 1,
+      "pushed_at": 1786289862.2978747
+    },
+    {
+      "series_id": "in_time_television",
+      "season": 1,
+      "episode": 1,
+      "scene": 136,
+      "timeline_id": "vision_2",
+      "parent_timeline": "nested_1",
+      "type": "vision",
+      "depth": 2,
+      "pushed_at": 1786289862.744535
+    },
+    {
+      "series_id": "in_time_television",
+      "season": 1,
+      "episode": 1,
+      "scene": 138,
+      "timeline_id": "vision_3",
+      "parent_timeline": "vision_2",
+      "type": "vision",
+      "depth": 3,
+      "pushed_at": 1786289862.7637737
+    },
+    {
+      "series_id": "in_time_television",
+      "season": 1,
+      "episode": 1,
+      "scene": 140,
+      "timeline_id": "vision_4",
+      "parent_timeline": "vision_3",
+      "type": "vision",
+      "depth": 4,
+      "pushed_at": 1786289862.7809985
+    },
+    {
+      "series_id": "in_time_television",
+      "season": 1,
+      "episode": 1,
+      "scene": 154,
+      "timeline_id": "nested_5",
+      "parent_timeline": "vision_4",
+      "type": "nested",
+      "depth": 5,
+      "pushed_at": 1786289862.87759
+    },
+    {
+      "series_id": "in_time_television",
+      "season": 1,
+      "episode": 1,
+      "scene": 162,
+      "timeline_id": "vision_6",
+      "parent_timeline": "nested_5",
+      "type": "vision",
+      "depth": 6,
+      "pushed_at": 1786289862.9588068
+    },
+    {
+      "series_id": "in_time_television",
+      "season": 1,
+      "episode": 1,
+      "scene": 171,
+      "timeline_id": "nested_7",
+      "parent_timeline": "vision_6",
+      "type": "nested",
+      "depth": 7,
+      "pushed_at": 1786289863.0289972
+    },
+    {
+      "series_id": "in_time_television",
+      "season": 1,
+      "episode": 1,
+      "scene": 202,
+      "timeline_id": "vision_8",
+      "parent_timeline": "nested_7",
+      "type": "vision",
+      "depth": 8,
+      "pushed_at": 1786289863.240182
+    }
+  ],
+  "learning_log": [],
+  "created_at": 1786289622.684622,
+  "updated_at": 1786289863.2426896
+}

@@ -1,0 +1,19 @@
+{
+  "prompt": "wide cinematic shot of His neighbor, an older man named TOBY appears 25,\n  Direction: Deliver with measured intensity\nactually 45, leans over.\n\nTOBY: You look worse than usual.\n\nKAI: Didn't sleep., cinematic, dramatic lighting, film still, movie quality, 4k, highly detailed",
+  "script_segment": "His neighbor, an older man named TOBY (appears 25,\n  [Direction: Deliver with measured intensity]\nactually 45), leans over.\n\nTOBY: You look worse than usual.\n\nKAI: Didn't sleep.",
+  "duration": 5,
+  "model": "ltx",
+  "style": "cinematic",
+  "num_frames": 97,
+  "fps": 24,
+  "steps": 30,
+  "seed": null,
+  "transition": "cut",
+  "transition_duration": 0.5,
+  "scene_number": 25,
+  "status": "pending",
+  "video_path": "",
+  "job_id": "",
+  "retake_count": 0,
+  "created_at": 1786289861.98674
+}

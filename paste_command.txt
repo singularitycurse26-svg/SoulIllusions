@@ -1,0 +1,582 @@
+﻿cat << 'LIGHTNING_EOF' > lightning_backend.py
+"""
+SoulIllusions GPU Backend - Lightning AI Edition
+Single-file backend with SDXL image generation + LTX video generation + FastAPI server.
+
+Usage on Lightning AI:
+1. Install deps: pip install diffusers transformers accelerate torch torchvision omegaconf einops imageio[ffmpeg] imageio-ffmpeg fastapi uvicorn python-multipart pydantic nest_asyncio
+2. Switch to GPU (Resources tab -> T4)
+3. Run: python lightning_backend.py
+4. Expose port 8000 via "Deploy on public ports" in Lightning sidebar
+5. Copy the public URL into SoulIllusions
+"""
+import os
+import sys
+import time
+import uuid
+import gc
+import math
+import warnings
+import threading
+import json
+from typing import Optional, List, Dict, Any
+
+warnings.filterwarnings('\''ignore'\'')
+
+# Paths for Lightning AI
+WORK_DIR = '\''/teamspace/studios/this_studio'\''
+CACHE_DIR = os.path.join(WORK_DIR, '\''model_cache'\'')
+OUTPUT_DIR = os.path.join(WORK_DIR, '\''outputs'\'')
+IMG_DIR = os.path.join(OUTPUT_DIR, '\''images'\'')
+os.makedirs(OUTPUT_DIR, exist_ok=True)
+os.makedirs(IMG_DIR, exist_ok=True)
+os.makedirs(CACHE_DIR, exist_ok=True)
+
+import torch
+import numpy as np
+
+device = '\''cuda'\'' if torch.cuda.is_available() else '\''cpu'\''
+if device == '\''cpu'\'':
+    print('\''WARNING: No GPU detected! Switch to GPU in Resources tab.'\'')
+    print('\''  Right sidebar -> Resources -> T4 GPU'\'')
+    sys.exit(1)
+
+gpu_name = torch.cuda.get_device_name(0)
+vram = torch.cuda.get_device_properties(0).total_memory / 1024**3
+print(f'\''GPU: {gpu_name} ({vram:.1f} GB VRAM)'\'')
+print(f'\''Work dir: {WORK_DIR}'\'')
+print(f'\''Cache dir: {CACHE_DIR}'\'')
+
+# === Prompt Enhancement ===
+STYLE_MODIFIERS = {
+    '\''cinematic'\'': {
+        '\''camera'\'': '\''cinematic camera, slow dolly push-in, shallow depth of field'\'',
+        '\''lighting'\'': '\''dramatic lighting, golden hour, high contrast, film still'\'',
+        '\''quality'\'': '\''movie quality, 4k, highly detailed, professional cinematography'\'',
+        '\''negative'\'': '\''static shot, flat lighting, low contrast, amateur, blurry'\'',
+    },
+    '\''realistic'\'': {
+        '\''camera'\'': '\''handheld camera, natural movement, documentary style'\'',
+        '\''lighting'\'': '\''natural lighting, soft ambient light, realistic shadows'\'',
+        '\''quality'\'': '\''photorealistic, ultra realistic, 8k, professional photo'\'',
+        '\''negative'\'': '\''cartoon, anime, stylized, artificial lighting, oversaturated'\'',
+    },
+    '\''anime'\'': {
+        '\''camera'\'': '\''dynamic anime camera, expressive angles, smooth panning'\'',
+        '\''lighting'\'': '\''vibrant lighting, cel shaded, studio quality lighting'\'',
+        '\''quality'\'': '\''anime style, cel shaded, vibrant colors, detailed background, studio quality'\'',
+        '\''negative'\'': '\''realistic, photorealistic, dark, muted colors, 3d render'\'',
+    },
+    '\''documentary'\'': {
+        '\''camera'\'': '\''steady camera, observational, wide establishing shots'\'',
+        '\''lighting'\'': '\''natural lighting, available light, realistic'\'',
+        '\''quality'\'': '\''documentary style, professional photography, realistic texture'\'',
+        '\''negative'\'': '\''stylized, dramatic, artificial, cinematic, music video'\'',
+    },
+    '\''music video'\'': {
+        '\''camera'\'': '\''dynamic camera movement, fast cuts, tracking shots, crane shots'\'',
+        '\''lighting'\'': '\''vibrant colors, dynamic lighting, strobe effects, neon'\'',
+        '\''quality'\'': '\''music video aesthetic, stylized, energetic, high production value'\'',
+        '\''negative'\'': '\''static, boring, flat, documentary, naturalistic'\'',
+    },
+    '\''social media'\'': {
+        '\''camera'\'': '\''close-up, selfie angle, vertical composition'\'',
+        '\''lighting'\'': '\''bright, colorful, ring light, eye-catching'\'',
+        '\''quality'\'': '\''modern, social media style, vibrant, clean'\'',
+        '\''negative'\'': '\''dark, cinematic, slow, boring, low quality'\'',
+    },
+}
+
+NEGATIVE_PROMPT = (
+    "worst quality, inconsistent motion, blurry, jittery, distorted, "
+    "low resolution, artifacts, static, overexposed, identity drift, "
+    "deformation, flickering, ghosting, smearing, duplication, "
+    "mutated proportions, inconsistent clothing, flat colors, desaturated"
+)
+
+def enhance_prompt(prompt, style='\''cinematic'\''):
+    mod = STYLE_MODIFIERS.get(style, STYLE_MODIFIERS['\''cinematic'\''])
+    enhanced = (
+        f"{prompt}. "
+        f"{mod['\''camera'\'']}. "
+        f"{mod['\''lighting'\'']}. "
+        f"{mod['\''quality'\'']}. "
+        f"Smooth temporal motion, consistent identity throughout. "
+        f"Professional grade output."
+    )
+    negative = f"{NEGATIVE_PROMPT}, {mod['\''negative'\'']}"
+    return enhanced, negative
+
+# === Model Management ===
+_pipes = {}
+_img_pipe = None
+
+def unload_all_models():
+    global _pipes
+    for key in list(_pipes.keys()):
+        del _pipes[key]
+    _pipes.clear()
+    gc.collect()
+    torch.cuda.empty_cache()
+    print('\''[All video models unloaded, VRAM cleared]'\'')
+
+def unload_img_pipe():
+    global _img_pipe
+    if _img_pipe is not None:
+        del _img_pipe
+        _img_pipe = None
+        gc.collect()
+        torch.cuda.empty_cache()
+        print('\''[Image model unloaded, VRAM cleared]'\'')
+
+def _get_pipe(key, loader_fn):
+    if key not in _pipes:
+        unload_all_models()
+        unload_img_pipe()
+        loader_fn()
+    return _pipes[key]
+
+def _configure_scheduler(pipe, solver='\''unipc'\'', flow_shift=5.0, use_karras=False,
+                          use_dynamic_shifting=False, timestep_spacing='\''linspace'\''):
+    try:
+        if solver == '\''unipc'\'':
+            from diffusers import UniPCMultistepScheduler
+            pipe.scheduler = UniPCMultistepScheduler.from_config(
+                pipe.scheduler.config, flow_shift=flow_shift, use_karras_sigmas=use_karras)
+        elif solver == '\''euler'\'':
+            from diffusers import EulerDiscreteScheduler
+            pipe.scheduler = EulerDiscreteScheduler.from_config(
+                pipe.scheduler.config, use_karras_sigmas=use_karras, timestep_spacing=timestep_spacing)
+        elif solver == '\''flow_match_euler'\'':
+            from diffusers import FlowMatchEulerDiscreteScheduler
+            pipe.scheduler = FlowMatchEulerDiscreteScheduler.from_config(
+                pipe.scheduler.config, shift=flow_shift, use_dynamic_shifting=use_dynamic_shifting)
+    except Exception as e:
+        print(f'\''[Scheduler config skipped: {e}]'\'')
+    return pipe
+
+# === LTX-Video ===
+def _load_ltx():
+    from diffusers import LTXPipeline
+    print('\''[Loading LTX-Video model...]'\'')
+    _pipes['\''ltx'\''] = LTXPipeline.from_pretrained(
+        "Lightricks/LTX-Video", torch_dtype=torch.float16, cache_dir=CACHE_DIR)
+    _pipes['\''ltx'\''].to(device)
+    _pipes['\''ltx'\''].vae.enable_tiling()
+    print('\''[LTX-Video loaded!]'\'')
+
+def get_ltx_pipe():
+    return _get_pipe('\''ltx'\'', _load_ltx)
+
+def generate_ltx(prompt, negative_prompt, num_frames=97, fps=24, width=768, height=512,
+                 steps=30, seed=None, guidance_scale=3.0, guidance_rescale=0.0,
+                 decode_timestep=0.03, decode_noise_scale=0.025, image_cond_noise_scale=0.0,
+                 solver='\''unipc'\'', flow_shift=5.0, use_karras=False, custom_timesteps=None,
+                 num_videos_per_prompt=1, output_type='\''pil'\''):
+    if seed is None:
+        seed = int(time.time())
+    pipe = get_ltx_pipe()
+    pipe = _configure_scheduler(pipe, solver=solver, flow_shift=flow_shift, use_karras=use_karras)
+    generator = torch.Generator(device='\''cuda'\'').manual_seed(seed)
+    kwargs = dict(
+        prompt=prompt, negative_prompt=negative_prompt,
+        width=width, height=height, num_frames=num_frames,
+        num_inference_steps=steps, guidance_scale=guidance_scale,
+        guidance_rescale=guidance_rescale,
+        decode_timestep=decode_timestep, decode_noise_scale=decode_noise_scale,
+        image_cond_noise_scale=image_cond_noise_scale,
+        generator=generator, num_videos_per_prompt=num_videos_per_prompt,
+        output_type=output_type,
+    )
+    if custom_timesteps:
+        kwargs['\''timesteps'\''] = custom_timesteps
+    video = pipe(**kwargs).frames[0]
+    output_path = os.path.join(OUTPUT_DIR, f'\''{uuid.uuid4().hex[:8]}.mp4'\'')
+    from diffusers.utils import export_to_video
+    export_to_video(video, output_path, fps=fps)
+    return output_path
+
+# === Camera motion injection ===
+def _inject_camera_motion(prompt, camera_enabled=False, camera_motion='\''static'\'',
+                          camera_direction=None, camera_speed=0.5, camera_intensity=0.5):
+    if not camera_enabled or camera_motion == '\''static'\'':
+        return prompt
+    descriptions = {
+        '\''pan'\'': '\''pan'\'', '\''tilt'\'': '\''tilt'\'', '\''zoom'\'': '\''zoom in'\'', '\''dolly'\'': '\''dolly in'\'',
+        '\''tracking'\'': '\''tracking shot'\'', '\''handheld'\'': '\''handheld camera'\'',
+        '\''aerial'\'': '\''aerial drone shot'\'', '\''orbit'\'': '\''orbit shot'\'',
+        '\''crane'\'': '\''crane shot'\'', '\''pedestal'\'': '\''pedestal shot'\'',
+    }
+    desc = descriptions.get(camera_motion, '\'''\'')
+    if desc:
+        return f'\''{prompt}, {desc} camera movement'\''
+    return prompt
+
+# === Master video generation router ===
+def generate_video(prompt, model='\''auto'\'', style='\''cinematic'\'', num_frames=97, fps=24,
+                   steps=30, seed=None, enhance=True, audio=False, upscale=1,
+                   interpolate_fps=0, negative_prompt=None, width=None, height=None,
+                   guidance_scale=5.0, guidance_rescale=0.0, solver='\''unipc'\'',
+                   flow_shift=5.0, use_karras=False, use_dynamic_shifting=False,
+                   timestep_spacing='\''linspace'\'', custom_timesteps=None,
+                   boundary_ratio=0.875, decode_timestep=0.05,
+                   decode_noise_scale=0.025, image_cond_noise_scale=0.0,
+                   denoise_strength=1.0, num_videos_per_prompt=1,
+                   creativity_scale=0.5, output_type='\''pil'\'',
+                   camera_enabled=False, camera_motion='\''static'\'',
+                   camera_direction=None, camera_speed=0.5, camera_intensity=0.5,
+                   color_grading=None, effects=None, codec='\''h264'\'', crf=23,
+                   preset='\''medium'\'', tune='\''none'\'', bitrate=None, maxrate=None,
+                   bufsize=None, profile='\''high'\'', pixel_format='\''yuv420p'\'',
+                   audio_enabled=False, native_audio=False, tts_text=None,
+                   tts_voice='\''narrator_male'\'', ambient_prompt=None,
+                   music_prompt=None, upscale_model='\''realesrgan_x2'\'',
+                   interpolate_motion_blur=False):
+    if enhance:
+        enhanced_prompt, neg_prompt = enhance_prompt(prompt, style)
+    else:
+        enhanced_prompt = prompt
+        neg_prompt = negative_prompt or NEGATIVE_PROMPT
+
+    enhanced_prompt = _inject_camera_motion(
+        enhanced_prompt, camera_enabled, camera_motion,
+        camera_direction, camera_speed, camera_intensity)
+
+    if model == '\''auto'\'':
+        model = '\''ltx'\''
+    if width is None:
+        width = 768
+    if height is None:
+        height = 512
+
+    print(f'\''[Generating: model={model}, {width}x{height}, {num_frames}f@{fps}fps, {steps} steps, cfg={guidance_scale}]'\'')
+
+    output_path = generate_ltx(
+        prompt=enhanced_prompt, negative_prompt=neg_prompt,
+        num_frames=num_frames, fps=fps, steps=steps, seed=seed,
+        guidance_scale=guidance_scale, guidance_rescale=guidance_rescale,
+        decode_timestep=decode_timestep, decode_noise_scale=decode_noise_scale,
+        image_cond_noise_scale=image_cond_noise_scale, solver=solver,
+        flow_shift=flow_shift, use_karras=use_karras, width=width, height=height,
+        num_videos_per_prompt=num_videos_per_prompt, output_type=output_type)
+
+    print(f'\''[Video generated: {output_path}]'\'')
+    return output_path
+
+# === SDXL Image Generation ===
+def get_img_pipe():
+    global _img_pipe
+    if _img_pipe is None:
+        from diffusers import StableDiffusionXLPipeline
+        print('\''[Loading SDXL model...]'\'')
+        _img_pipe = StableDiffusionXLPipeline.from_pretrained(
+            "stabilityai/stable-diffusion-xl-base-1.0",
+            torch_dtype=torch.float16, cache_dir=CACHE_DIR)
+        _img_pipe.to(device)
+        print('\''[SDXL loaded!]'\'')
+    return _img_pipe
+
+def generate_image(prompt, negative_prompt=None, width=1024, height=1024,
+                   steps=25, seed=None, guidance_scale=7.5, batch_count=1,
+                   style_preset='\''None'\''):
+    if seed is None:
+        seed = int(time.time())
+    pipe = get_img_pipe()
+    generator = torch.Generator(device='\''cuda'\'').manual_seed(seed)
+
+    style_map = {
+        '\''cinematic'\'': '\''cinematic lighting, film still, dramatic shadows, professional cinematography'\'',
+        '\''realistic'\'': '\''photorealistic, ultra realistic, 8k, professional photography, natural lighting'\'',
+        '\''anime'\'': '\''anime style, cel shaded, vibrant colors, detailed background, studio quality'\'',
+        '\''digital art'\'': '\''digital art, concept art, trending on artstation, highly detailed'\'',
+        '\''oil painting'\'': '\''oil painting, textured brushstrokes, fine art, museum quality'\'',
+        '\''poster'\'': '\''movie poster style, dramatic composition, bold typography area, cinematic lighting, professional poster design'\'',
+        '\''portrait'\'': '\''portrait photography, studio lighting, shallow depth of field, professional headshot'\'',
+        '\''fantasy'\'': '\''fantasy art, magical atmosphere, ethereal lighting, detailed concept art'\'',
+        '\''sci-fi'\'': '\''science fiction, futuristic, neon lighting, cyberpunk aesthetic, high tech'\'',
+        '\''noir'\'': '\''film noir, black and white, high contrast, dramatic shadows, vintage'\'',
+    }
+    suffix = style_map.get(style_preset, '\'''\'')
+    full_prompt = f"{prompt}. {suffix}" if suffix else prompt
+    neg = negative_prompt or "worst quality, low quality, blurry, distorted, deformed, ugly, bad anatomy, watermark, text"
+
+    print(f'\''[Image gen: {width}x{height}, {steps} steps, cfg={guidance_scale}]'\'')
+    images = pipe(
+        prompt=full_prompt, negative_prompt=neg,
+        width=width, height=height,
+        num_inference_steps=steps, guidance_scale=guidance_scale,
+        generator=generator, num_images_per_prompt=batch_count,
+    ).images
+
+    output_paths = []
+    for img in images:
+        path = os.path.join(IMG_DIR, f'\''{uuid.uuid4().hex[:8]}.png'\'')
+        img.save(path)
+        output_paths.append(path)
+        print(f'\''[Image saved: {path}]'\'')
+    return output_paths
+
+# === FastAPI Server ===
+import uvicorn
+import nest_asyncio
+from fastapi import FastAPI, BackgroundTasks
+from fastapi.responses import FileResponse, JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
+
+nest_asyncio.apply()
+
+app = FastAPI(title='\''SoulIllusions GPU Backend (Lightning AI)'\'')
+app.add_middleware(
+    CORSMiddleware, allow_origins=['\''*'\''], allow_credentials=True,
+    allow_methods=['\''*'\''], allow_headers=['\''*'\''])
+
+generation_status = {}
+image_status = {}
+
+class GenRequest(BaseModel):
+    prompt: str
+    model: str = '\''ltx'\''
+    style: str = '\''cinematic'\''
+    num_frames: int = 97
+    fps: int = 24
+    steps: int = 30
+    seed: Optional[int] = None
+    enhance: bool = True
+    negative_prompt: Optional[str] = None
+    width: Optional[int] = None
+    height: Optional[int] = None
+    guidance_scale: float = 5.0
+    guidance_rescale: float = 0.0
+    solver: str = '\''unipc'\''
+    flow_shift: float = 5.0
+    use_karras_sigmas: bool = False
+    use_dynamic_shifting: bool = False
+    decode_timestep: float = 0.05
+    decode_noise_scale: float = 0.025
+    image_cond_noise_scale: float = 0.0
+    num_videos_per_prompt: int = 1
+    output_type: str = '\''pil'\''
+    camera_enabled: bool = False
+    camera_motion: str = '\''static'\''
+    camera_direction: Optional[str] = None
+    camera_speed: float = 0.5
+    camera_intensity: float = 0.5
+    upscale: int = 1
+    interpolate_fps: int = 0
+    color_grading: Optional[Dict[str, float]] = None
+    effects: Optional[Dict[str, Any]] = None
+    codec: str = '\''h264'\''
+    crf: int = 23
+    preset: str = '\''medium'\''
+    tune: str = '\''none'\''
+    bitrate: Optional[str] = None
+    maxrate: Optional[str] = None
+    bufsize: Optional[str] = None
+    profile: str = '\''high'\''
+    pixel_format: str = '\''yuv420p'\''
+    audio: bool = False
+
+class ImageGenRequest(BaseModel):
+    prompt: str = ""
+    model: str = "sdxl"
+    negative_prompt: Optional[str] = None
+    aspect_ratio: str = "1:1"
+    quality: str = "standard"
+    seed: Optional[int] = None
+    batch_count: int = 1
+    style_preset: str = "None"
+    width: Optional[int] = None
+    height: Optional[int] = None
+    guidance_scale: float = 7.5
+    steps: int = 25
+    lora_model: Optional[str] = None
+    lora_weight: float = 1.0
+    reference_strength: int = 50
+    image_mode: str = "t2i"
+    reference_images: list = []
+
+@app.get('\''/'\'')
+async def root():
+    return {
+        '\''status'\'': '\''online'\'',
+        '\''service'\'': '\''SoulIllusions GPU Backend (Lightning AI)'\'',
+        '\''gpu'\'': gpu_name,
+        '\''vram'\'': f'\''{vram:.1f} GB'\'',
+        '\''version'\'': '\''lightning-1.0'\'',
+    }
+
+@app.get('\''/api/status'\'')
+async def status():
+    vram_free = torch.cuda.mem_get_info()[0] / 1024**3 if torch.cuda.is_available() else 0
+    return {
+        '\''status'\'': '\''online'\'',
+        '\''gpu'\'': gpu_name,
+        '\''vram_total'\'': f'\''{vram:.1f} GB'\'',
+        '\''vram_free'\'': f'\''{vram_free:.1f} GB'\'',
+        '\''models'\'': ['\''ltx-video'\'', '\''sdxl'\''],
+        '\''features'\'': ['\''prompt-enhancement'\'', '\''image-generation'\'', '\''video-generation'\''],
+        '\''queue'\'': len([k for k, v in generation_status.items() if v['\''status'\''] == '\''processing'\'']),
+    }
+
+@app.get('\''/api/models'\'')
+async def models():
+    return {'\''models'\'': [
+        {'\''id'\'': '\''ltx'\'', '\''name'\'': '\''LTX-Video'\'', '\''desc'\'': '\''Fastest (768x512, 24fps)'\'', '\''resolution'\'': '\''768x512'\'', '\''fps'\'': 24},
+    ]}
+
+@app.get('\''/api/styles'\'')
+async def styles():
+    return {'\''styles'\'': list(STYLE_MODIFIERS.keys())}
+
+@app.get('\''/api/settings/defaults'\'')
+async def settings_defaults():
+    return {
+        '\''aspect_ratios'\'': {
+            '\''16:9'\'': {'\''width'\'': 1280, '\''height'\'': 720},
+            '\''9:16'\'': {'\''width'\'': 720, '\''height'\'': 1280},
+            '\''1:1'\'': {'\''width'\'': 1024, '\''height'\'': 1024},
+        },
+        '\''quality_modes'\'': {
+            '\''draft'\'': {'\''steps'\'': 10, '\''guidance'\'': 3.0},
+            '\''standard'\'': {'\''steps'\'': 30, '\''guidance'\'': 5.0},
+            '\''pro'\'': {'\''steps'\'': 50, '\''guidance'\'': 5.0},
+        },
+        '\''styles'\'': list(STYLE_MODIFIERS.keys()),
+    }
+
+@app.post('\''/api/enhance-prompt'\'')
+async def enhance_prompt_api(prompt: str, style: str = '\''cinematic'\''):
+    enhanced, negative = enhance_prompt(prompt, style)
+    return {'\''original'\'': prompt, '\''enhanced'\'': enhanced, '\''negative_prompt'\'': negative, '\''style'\'': style}
+
+# === Image Generation Endpoints ===
+@app.get('\''/api/image/options'\'')
+async def img_opts():
+    return {
+        '\''models'\'': [{'\''id'\'': '\''sdxl'\'', '\''name'\'': '\''SDXL'\'', '\''desc'\'': '\''Stable Diffusion XL'\''}],
+        '\''style_presets'\'': ['\''None'\'', '\''cinematic'\'', '\''realistic'\'', '\''poster'\'', '\''sci-fi'\'', '\''portrait'\'', '\''fantasy'\'', '\''noir'\'', '\''anime'\'', '\''digital art'\'', '\''oil painting'\''],
+        '\''aspect_ratios'\'': {
+            '\''1:1'\'': {'\''width'\'': 1024, '\''height'\'': 1024},
+            '\''16:9'\'': {'\''width'\'': 1344, '\''height'\'': 768},
+            '\''9:16'\'': {'\''width'\'': 768, '\''height'\'': 1344},
+            '\''4:3'\'': {'\''width'\'': 1152, '\''height'\'': 896},
+            '\''3:4'\'': {'\''width'\'': 896, '\''height'\'': 1152},
+            '\''2:3'\'': {'\''width'\'': 832, '\''height'\'': 1216},
+            '\''3:2'\'': {'\''width'\'': 1216, '\''height'\'': 832},
+        },
+        '\''quality_modes'\'': {
+            '\''draft'\'': {'\''steps'\'': 10, '\''guidance'\'': 3.0},
+            '\''standard'\'': {'\''steps'\'': 25, '\''guidance'\'': 7.5},
+            '\''pro'\'': {'\''steps'\'': 40, '\''guidance'\'': 7.5},
+            '\''ultra'\'': {'\''steps'\'': 60, '\''guidance'\'': 8.0},
+        },
+    }
+
+@app.post('\''/api/image/generate'\'')
+async def gen_img(req: ImageGenRequest, bg: BackgroundTasks):
+    jid = uuid.uuid4().hex[:12]
+    image_status[jid] = {'\''status'\'': '\''processing'\'', '\''progress'\'': 0, '\''prompt'\'': req.prompt, '\''images'\'': []}
+    am = {'\''1:1'\'': (1024, 1024), '\''16:9'\'': (1344, 768), '\''9:16'\'': (768, 1344),
+          '\''4:3'\'': (1152, 896), '\''3:4'\'': (896, 1152), '\''2:3'\'': (832, 1216),
+          '\''3:2'\'': (1216, 832)}
+    w, h = am.get(req.aspect_ratio, (1024, 1024))
+    if req.width:
+        w = req.width
+    if req.height:
+        h = req.height
+    qs = {'\''draft'\'': 10, '\''standard'\'': 25, '\''pro'\'': 40, '\''ultra'\'': 60}
+    steps = qs.get(req.quality, req.steps)
+
+    def run():
+        try:
+            paths = generate_image(
+                prompt=req.prompt, negative_prompt=req.negative_prompt,
+                width=w, height=h, steps=steps, seed=req.seed,
+                guidance_scale=req.guidance_scale, batch_count=req.batch_count,
+                style_preset=req.style_preset)
+            image_status[jid] = {'\''status'\'': '\''complete'\'', '\''progress'\'': 1.0, '\''prompt'\'': req.prompt, '\''images'\'': paths}
+        except Exception as e:
+            image_status[jid] = {'\''status'\'': '\''failed'\'', '\''progress'\'': 0, '\''error'\'': str(e), '\''images'\'': []}
+
+    bg.add_task(run)
+    return {'\''job_id'\'': jid, '\''status'\'': '\''processing'\''}
+
+@app.get('\''/api/image/status/{job_id}'\'')
+async def img_stat(job_id: str):
+    if job_id not in image_status:
+        return JSONResponse({'\''error'\'': '\''Not found'\''}, status_code=404)
+    return image_status[job_id]
+
+@app.get('\''/api/image/download/{job_id}'\'')
+async def img_dl(job_id: str):
+    j = image_status.get(job_id)
+    if not j or j['\''status'\''] != '\''complete'\'' or not j['\''images'\'']:
+        return JSONResponse({'\''error'\'': '\''Not ready'\''}, status_code=400)
+    return FileResponse(j['\''images'\''][0], media_type='\''image/png'\'')
+
+# === Video Generation Endpoints ===
+@app.post('\''/api/generate'\'')
+async def generate(req: GenRequest, bg: BackgroundTasks):
+    jid = uuid.uuid4().hex[:12]
+    generation_status[jid] = {'\''status'\'': '\''processing'\'', '\''progress'\'': 0, '\''prompt'\'': req.prompt, '\''model'\'': req.model, '\''output'\'': None}
+
+    def run():
+        try:
+            unload_img_pipe()
+            output_path = generate_video(
+                prompt=req.prompt, model=req.model, style=req.style,
+                num_frames=req.num_frames, fps=req.fps, steps=req.steps,
+                seed=req.seed, enhance=req.enhance, negative_prompt=req.negative_prompt,
+                width=req.width, height=req.height, guidance_scale=req.guidance_scale,
+                guidance_rescale=req.guidance_rescale, solver=req.solver,
+                flow_shift=req.flow_shift, use_karras=req.use_karras_sigmas,
+                use_dynamic_shifting=req.use_dynamic_shifting,
+                decode_timestep=req.decode_timestep, decode_noise_scale=req.decode_noise_scale,
+                image_cond_noise_scale=req.image_cond_noise_scale,
+                num_videos_per_prompt=req.num_videos_per_prompt, output_type=req.output_type,
+                camera_enabled=req.camera_enabled, camera_motion=req.camera_motion,
+                camera_direction=req.camera_direction, camera_speed=req.camera_speed,
+                camera_intensity=req.camera_intensity, upscale=req.upscale,
+                interpolate_fps=req.interpolate_fps, color_grading=req.color_grading,
+                effects=req.effects, codec=req.codec, crf=req.crf, preset=req.preset,
+                tune=req.tune, bitrate=req.bitrate, maxrate=req.maxrate,
+                bufsize=req.bufsize, profile=req.profile, pixel_format=req.pixel_format,
+                audio=req.audio)
+            generation_status[jid] = {'\''status'\'': '\''complete'\'', '\''progress'\'': 1.0, '\''prompt'\'': req.prompt, '\''output'\'': output_path}
+        except Exception as e:
+            generation_status[jid] = {'\''status'\'': '\''failed'\'', '\''prompt'\'': req.prompt, '\''output'\'': None, '\''error'\'': str(e)}
+
+    bg.add_task(run)
+    return {'\''job_id'\'': jid, '\''status'\'': '\''processing'\'', '\''model'\'': req.model}
+
+@app.get('\''/api/status/{job_id}'\'')
+async def job_status(job_id: str):
+    if job_id not in generation_status:
+        return JSONResponse({'\''error'\'': '\''Not found'\''}, status_code=404)
+    return generation_status[job_id]
+
+@app.get('\''/api/download/{job_id}'\'')
+async def download(job_id: str):
+    j = generation_status.get(job_id)
+    if not j or j['\''status'\''] != '\''complete'\'' or not j['\''output'\'']:
+        return JSONResponse({'\''error'\'': '\''Not ready'\''}, status_code=400)
+    return FileResponse(j['\''output'\''], media_type='\''video/mp4'\'', filename=f'\''video_{job_id}.mp4'\'')
+
+if __name__ == '\''__main__'\'':
+    print('\''='\'' * 60)
+    print('\''  SoulIllusions GPU Backend - Lightning AI Edition'\'')
+    print(f'\''  GPU: {gpu_name} ({vram:.1f} GB VRAM)'\'')
+    print('\''  Video: LTX-Video | Image: SDXL'\'')
+    print('\''  Server: http://0.0.0.0:8000'\'')
+    print('\''='\'' * 60)
+    print()
+    print('\''  After server starts:'\'')
+    print('\''  1. Click "Deploy on public ports" in Lightning sidebar'\'')
+    print('\''  2. Select port 8000'\'')
+    print('\''  3. Copy the public URL'\'')
+    print('\''  4. Paste it into SoulIllusions'\'')
+    print()
+    uvicorn.run(app, host='\''0.0.0.0'\'', port=8000, log_level='\''info'\'')
+
+LIGHTNING_EOF

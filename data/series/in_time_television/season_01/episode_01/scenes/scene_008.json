@@ -1,0 +1,19 @@
+{
+  "prompt": "close-up detail of He touches it briefly, then turns away.\n\nHe puts on his jacket, checks his time again: 19:12:08., cinematic, dramatic lighting, film still, movie quality, 4k, highly detailed",
+  "script_segment": "He touches it briefly, then turns away.\n\nHe puts on his jacket, checks his time again: 19:12:08.",
+  "duration": 5,
+  "model": "ltx",
+  "style": "cinematic",
+  "num_frames": 97,
+  "fps": 24,
+  "steps": 30,
+  "seed": null,
+  "transition": "cut",
+  "transition_duration": 0.5,
+  "scene_number": 8,
+  "status": "pending",
+  "video_path": "",
+  "job_id": "",
+  "retake_count": 0,
+  "created_at": 1786289861.8412414
+}

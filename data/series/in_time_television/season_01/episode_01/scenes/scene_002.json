@@ -1,0 +1,19 @@
+{
+  "prompt": "dramatic close-up of - INT. DAYTON APARTMENT - DAWN\n\nCAMERA: Establishing shot. SCENE 1 - INT. DAYTON APARTMENT - DAWN\nLIGHTING: Naturalistic, mot, cinematic, dramatic lighting, film still, movie quality, 4k, highly detailed",
+  "script_segment": "SCENE 1 - INT. DAYTON APARTMENT - DAWN\n\n[CAMERA: Establishing shot. SCENE 1 - INT. DAYTON APARTMENT - DAWN]\n[LIGHTING: Naturalistic, mot",
+  "duration": 5,
+  "model": "ltx",
+  "style": "cinematic",
+  "num_frames": 97,
+  "fps": 24,
+  "steps": 30,
+  "seed": null,
+  "transition": "cut",
+  "transition_duration": 0.5,
+  "scene_number": 2,
+  "status": "pending",
+  "video_path": "",
+  "job_id": "",
+  "retake_count": 0,
+  "created_at": 1786289861.7962432
+}

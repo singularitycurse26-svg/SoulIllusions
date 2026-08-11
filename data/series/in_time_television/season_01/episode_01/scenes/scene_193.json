@@ -1,0 +1,19 @@
+{
+  "prompt": "wide cinematic shot of er\n  Direction: Deliver with measured intensity\npipes. The time-keepers are fit but they don't know the territory., cinematic, dramatic lighting, film still, movie quality, 4k, highly detailed",
+  "script_segment": "er\n  [Direction: Deliver with measured intensity]\npipes. The time-keepers are fit but they don't know the territory.",
+  "duration": 5,
+  "model": "ltx",
+  "style": "cinematic",
+  "num_frames": 97,
+  "fps": 24,
+  "steps": 30,
+  "seed": null,
+  "transition": "cut",
+  "transition_duration": 0.5,
+  "scene_number": 193,
+  "status": "pending",
+  "video_path": "",
+  "job_id": "",
+  "retake_count": 0,
+  "created_at": 1786289863.1673064
+}

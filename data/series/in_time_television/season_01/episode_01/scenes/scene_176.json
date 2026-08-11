@@ -1,0 +1,19 @@
+{
+  "prompt": "close-up detail of He looks at the chip again. He makes a decision. He needs to\n  Direction: Deliver with measured intensity\nget to The Fringe. No zone boundaries, no time-keepers, and someone there can\n  Direc, cinematic, dramatic lighting, film still, movie quality, 4k, highly detailed",
+  "script_segment": "He looks at the chip again. He makes a decision. He needs to\n  [Direction: Deliver with measured intensity]\nget to The Fringe. No zone boundaries, no time-keepers, and someone there can\n  [Direc",
+  "duration": 5,
+  "model": "ltx",
+  "style": "cinematic",
+  "num_frames": 97,
+  "fps": 24,
+  "steps": 30,
+  "seed": null,
+  "transition": "cut",
+  "transition_duration": 0.5,
+  "scene_number": 176,
+  "status": "pending",
+  "video_path": "",
+  "job_id": "",
+  "retake_count": 0,
+  "created_at": 1786289863.0645206
+}

@@ -1,0 +1,19 @@
+{
+  "prompt": "low angle shot of And someone who can read a data chip.\n\nHe starts walking. The camera follows him from behind as he heads toward t, cinematic, dramatic lighting, film still, movie quality, 4k, highly detailed",
+  "script_segment": "And someone who can read a data chip.\n\nHe starts walking. The camera follows him from behind as he heads toward t",
+  "duration": 5,
+  "model": "ltx",
+  "style": "cinematic",
+  "num_frames": 97,
+  "fps": 24,
+  "steps": 30,
+  "seed": null,
+  "transition": "cut",
+  "transition_duration": 0.5,
+  "scene_number": 197,
+  "status": "pending",
+  "video_path": "",
+  "job_id": "",
+  "retake_count": 0,
+  "created_at": 1786289863.193493
+}

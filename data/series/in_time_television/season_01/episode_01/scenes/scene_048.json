@@ -1,0 +1,19 @@
+{
+  "prompt": "close-up detail of .. The transfer stops.\n\nKai stares at his arm in shock. He has over 1000 hours. Over 41 days., cinematic, dramatic lighting, film still, movie quality, 4k, highly detailed",
+  "script_segment": ".. The transfer stops.\n\nKai stares at his arm in shock. He has over 1000 hours. Over 41 days.",
+  "duration": 5,
+  "model": "ltx",
+  "style": "cinematic",
+  "num_frames": 97,
+  "fps": 24,
+  "steps": 30,
+  "seed": null,
+  "transition": "cut",
+  "transition_duration": 0.5,
+  "scene_number": 48,
+  "status": "pending",
+  "video_path": "",
+  "job_id": "",
+  "retake_count": 0,
+  "created_at": 1786289862.1497018
+}

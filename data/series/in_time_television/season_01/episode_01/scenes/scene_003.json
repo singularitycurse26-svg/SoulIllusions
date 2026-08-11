@@ -1,0 +1,19 @@
+{
+  "prompt": "medium shot of ivated by scene environment\nSOUND: Ambient environmental audio, subtle tension layer\n\n\nKai wakes up to the sound of his forearm alarm., cinematic, dramatic lighting, film still, movie quality, 4k, highly detailed",
+  "script_segment": "ivated by scene environment]\n[SOUND: Ambient environmental audio, subtle tension layer]\n\n\nKai wakes up to the sound of his forearm alarm.",
+  "duration": 5,
+  "model": "ltx",
+  "style": "cinematic",
+  "num_frames": 97,
+  "fps": 24,
+  "steps": 30,
+  "seed": null,
+  "transition": "cut",
+  "transition_duration": 0.5,
+  "scene_number": 3,
+  "status": "pending",
+  "video_path": "",
+  "job_id": "",
+  "retake_count": 0,
+  "created_at": 1786289861.8040733
+}

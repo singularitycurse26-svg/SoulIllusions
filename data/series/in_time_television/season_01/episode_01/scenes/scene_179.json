@@ -1,0 +1,19 @@
+{
+  "prompt": "medium shot of Two TIME-KEEPERS stand in the hallway.\n\nTIME-KEEPER 1: Kai Morrow?\n\nKAI: freezes Yeah.\n\nTIME-KEEPER 1: You need to come with us. Kai Morrow (Lean, athletic build from years of running. Dark brown skin, close-cropped hair, intense amber eyes that seem to calculate every second. Wears worn clothes with hidden time capsule pockets. A faint scar on his left forearm from a near-timing-out experience.)., cinematic, dramatic lighting, film still, movie quality, 4k, highly detailed",
+  "script_segment": "Two TIME-KEEPERS stand in the hallway.\n\nTIME-KEEPER 1: Kai Morrow?\n\nKAI: (freezes) Yeah.\n\nTIME-KEEPER 1: You need to come with us.",
+  "duration": 5,
+  "model": "ltx",
+  "style": "cinematic",
+  "num_frames": 97,
+  "fps": 24,
+  "steps": 30,
+  "seed": null,
+  "transition": "cut",
+  "transition_duration": 0.5,
+  "scene_number": 179,
+  "status": "pending",
+  "video_path": "",
+  "job_id": "",
+  "retake_count": 0,
+  "created_at": 1786289863.082527
+}

@@ -1,0 +1,19 @@
+{
+  "prompt": "wide cinematic shot of .. that's either the most generous act I've seen in a\n  Direction: Deliver with measured intensity\ncentury, or the most dangerous., cinematic, dramatic lighting, film still, movie quality, 4k, highly detailed",
+  "script_segment": ".. that's either the most generous act I've seen in a\n  [Direction: Deliver with measured intensity]\ncentury, or the most dangerous.",
+  "duration": 5,
+  "model": "ltx",
+  "style": "cinematic",
+  "num_frames": 97,
+  "fps": 24,
+  "steps": 30,
+  "seed": null,
+  "transition": "cut",
+  "transition_duration": 0.5,
+  "scene_number": 89,
+  "status": "pending",
+  "video_path": "",
+  "job_id": "",
+  "retake_count": 0,
+  "created_at": 1786289862.4236019
+}

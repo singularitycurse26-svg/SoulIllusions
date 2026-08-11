@@ -1,0 +1,19 @@
+{
+  "prompt": "close-up detail of Kai pauses, looks at the\n  Direction: Deliver with measured intensity\nman, looks at his own clock 19:08:22, and keeps walking., cinematic, dramatic lighting, film still, movie quality, 4k, highly detailed",
+  "script_segment": "Kai pauses, looks at the\n  [Direction: Deliver with measured intensity]\nman, looks at his own clock (19:08:22), and keeps walking.",
+  "duration": 5,
+  "model": "ltx",
+  "style": "cinematic",
+  "num_frames": 97,
+  "fps": 24,
+  "steps": 30,
+  "seed": null,
+  "transition": "cut",
+  "transition_duration": 0.5,
+  "scene_number": 16,
+  "status": "pending",
+  "video_path": "",
+  "job_id": "",
+  "retake_count": 0,
+  "created_at": 1786289861.9123013
+}

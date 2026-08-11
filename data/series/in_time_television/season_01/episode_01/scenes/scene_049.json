@@ -1,0 +1,19 @@
+{
+  "prompt": "wide cinematic shot of The most\n  Direction: Deliver with measured intensity\ntime he's ever had in his life.\n\nKAI: What... why?\n\nMAN: Because you're from here., cinematic, dramatic lighting, film still, movie quality, 4k, highly detailed",
+  "script_segment": "The most\n  [Direction: Deliver with measured intensity]\ntime he's ever had in his life.\n\nKAI: What... why?\n\nMAN: Because you're from here.",
+  "duration": 5,
+  "model": "ltx",
+  "style": "cinematic",
+  "num_frames": 97,
+  "fps": 24,
+  "steps": 30,
+  "seed": null,
+  "transition": "cut",
+  "transition_duration": 0.5,
+  "scene_number": 49,
+  "status": "pending",
+  "video_path": "",
+  "job_id": "",
+  "retake_count": 0,
+  "created_at": 1786289862.1597548
+}

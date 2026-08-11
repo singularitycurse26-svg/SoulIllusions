@@ -1,0 +1,19 @@
+{
+  "prompt": "dramatic close-up of .. it was\n  Direction: Deliver with measured intensity\ndeliberately untraceable.\n\nSable studies the map. The red dot pulses in Dayton, the poorest zone.\n\nSABLE: Someone wanted this to be found., cinematic, dramatic lighting, film still, movie quality, 4k, highly detailed",
+  "script_segment": ".. it was\n  [Direction: Deliver with measured intensity]\ndeliberately untraceable.\n\nSable studies the map. The red dot pulses in Dayton, the poorest zone.\n\nSABLE: Someone wanted this to be found.",
+  "duration": 5,
+  "model": "ltx",
+  "style": "cinematic",
+  "num_frames": 97,
+  "fps": 24,
+  "steps": 30,
+  "seed": null,
+  "transition": "cut",
+  "transition_duration": 0.5,
+  "scene_number": 74,
+  "status": "pending",
+  "video_path": "",
+  "job_id": "",
+  "retake_count": 0,
+  "created_at": 1786289862.3311632
+}

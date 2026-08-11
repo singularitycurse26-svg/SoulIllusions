@@ -1,0 +1,19 @@
+{
+  "prompt": "tracking shot of \" It's like saying \"I've got money\" in a room full\n  Direction: Deliver with measured intensity\nof starving people.\n\nSUPERVISOR: suspicious You've got time?, cinematic, dramatic lighting, film still, movie quality, 4k, highly detailed",
+  "script_segment": "\" It's like saying \"I've got money\" in a room full\n  [Direction: Deliver with measured intensity]\nof starving people.\n\nSUPERVISOR: (suspicious) You've got time?",
+  "duration": 5,
+  "model": "ltx",
+  "style": "cinematic",
+  "num_frames": 97,
+  "fps": 24,
+  "steps": 30,
+  "seed": null,
+  "transition": "cut",
+  "transition_duration": 0.5,
+  "scene_number": 100,
+  "status": "pending",
+  "video_path": "",
+  "job_id": "",
+  "retake_count": 0,
+  "created_at": 1786289862.496534
+}

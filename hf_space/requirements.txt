@@ -1,0 +1,13 @@
+torch
+torchvision
+diffusers
+transformers
+accelerate
+gradio
+spaces
+imageio
+imageio-ffmpeg
+numpy
+safetensors
+omegaconf
+einops

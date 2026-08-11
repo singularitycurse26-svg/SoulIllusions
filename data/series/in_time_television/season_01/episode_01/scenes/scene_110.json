@@ -1,0 +1,19 @@
+{
+  "prompt": "aerial view of The man stares at his arm, then at\n  Direction: Deliver with measured intensity\nKai, tears forming., cinematic, dramatic lighting, film still, movie quality, 4k, highly detailed",
+  "script_segment": "The man stares at his arm, then at\n  [Direction: Deliver with measured intensity]\nKai, tears forming.",
+  "duration": 5,
+  "model": "ltx",
+  "style": "cinematic",
+  "num_frames": 97,
+  "fps": 24,
+  "steps": 30,
+  "seed": null,
+  "transition": "cut",
+  "transition_duration": 0.5,
+  "scene_number": 110,
+  "status": "pending",
+  "video_path": "",
+  "job_id": "",
+  "retake_count": 0,
+  "created_at": 1786289862.5746832
+}

@@ -1,0 +1,439 @@
+{
+  "assets": {
+    "location_time_bank_0787c7c4": {
+      "asset_id": "location_time_bank_0787c7c4",
+      "name": "TIME BANK",
+      "category": "location",
+      "subtype": "",
+      "description": "The interior of a sterile, futuristic TIME BANK. Digital clocks line the walls, each ticking down. The air feels clinical, cold.",
+      "tags": [
+        "location",
+        "in_time",
+        "ep1"
+      ],
+      "series_bindings": [
+        {
+          "series_id": "in_time_television",
+          "seasons": [
+            1
+          ],
+          "episodes": [
+            1
+          ]
+        }
+      ],
+      "versions": [],
+      "current_version": 0,
+      "locked": false,
+      "created": 1786289867.5397193,
+      "updated": 1786289929.0960069,
+      "metadata": {}
+    },
+    "location_new_los_angeles_56e1938a": {
+      "asset_id": "location_new_los_angeles_56e1938a",
+      "name": "NEW LOS ANGELES",
+      "category": "location",
+      "subtype": "",
+      "description": "A sprawling metropolis where everything costs time. Billboards read \"TIME IS MONEY — LITERALLY.\" Flying cars zip between glass towers. A massive countdown clock towers over the city center.",
+      "tags": [
+        "location",
+        "in_time",
+        "ep1"
+      ],
+      "series_bindings": [
+        {
+          "series_id": "in_time_television",
+          "seasons": [
+            1
+          ],
+          "episodes": [
+            1
+          ]
+        }
+      ],
+      "versions": [],
+      "current_version": 0,
+      "locked": false,
+      "created": 1786289869.5867612,
+      "updated": 1786289927.0506911,
+      "metadata": {}
+    },
+    "location_bridge_d1f54830": {
+      "asset_id": "location_bridge_d1f54830",
+      "name": "BRIDGE",
+      "category": "location",
+      "subtype": "",
+      "description": "Will and Henry stand on a bridge overlooking the city lights. Henry looks tired — not physically, but existentially.",
+      "tags": [
+        "location",
+        "in_time",
+        "ep1"
+      ],
+      "series_bindings": [
+        {
+          "series_id": "in_time_television",
+          "seasons": [
+            1
+          ],
+          "episodes": [
+            1
+          ]
+        }
+      ],
+      "versions": [],
+      "current_version": 0,
+      "locked": false,
+      "created": 1786289871.6294684,
+      "updated": 1786289925.002504,
+      "metadata": {}
+    },
+    "location_time_keeper_headquarters_f004006b": {
+      "asset_id": "location_time_keeper_headquarters_f004006b",
+      "name": "TIME KEEPER HEADQUARTERS",
+      "category": "location",
+      "subtype": "",
+      "description": "A dark, militaristic command center. Screens show city surveillance.",
+      "tags": [
+        "location",
+        "in_time",
+        "ep1"
+      ],
+      "series_bindings": [
+        {
+          "series_id": "in_time_television",
+          "seasons": [
+            1
+          ],
+          "episodes": [
+            1
+          ]
+        }
+      ],
+      "versions": [],
+      "current_version": 0,
+      "locked": false,
+      "created": 1786289873.6672466,
+      "updated": 1786289922.9689603,
+      "metadata": {}
+    },
+    "location_ghetto_streets_89125a01": {
+      "asset_id": "location_ghetto_streets_89125a01",
+      "name": "GHETTO STREETS",
+      "category": "location",
+      "subtype": "",
+      "description": "Will runs through the dark, narrow streets of the Dayton ghetto. He's rich for the first time in his life — and terrified. He passes a wall of memorial photos: people who've \"timed out.\"",
+      "tags": [
+        "location",
+        "in_time",
+        "ep1"
+      ],
+      "series_bindings": [
+        {
+          "series_id": "in_time_television",
+          "seasons": [
+            1
+          ],
+          "episodes": [
+            1
+          ]
+        }
+      ],
+      "versions": [],
+      "current_version": 0,
+      "locked": false,
+      "created": 1786289875.6817331,
+      "updated": 1786289920.941592,
+      "metadata": {}
+    },
+    "location_sylvia's_apartment_10dd5b81": {
+      "asset_id": "location_sylvia's_apartment_10dd5b81",
+      "name": "SYLVIA'S APARTMENT",
+      "category": "location",
+      "subtype": "",
+      "description": "Sylvia's apartment is modest but filled with art and books — contraband in a world where every second counts.",
+      "tags": [
+        "location",
+        "in_time",
+        "ep1"
+      ],
+      "series_bindings": [
+        {
+          "series_id": "in_time_television",
+          "seasons": [
+            1
+          ],
+          "episodes": [
+            1
+          ]
+        }
+      ],
+      "versions": [],
+      "current_version": 0,
+      "locked": false,
+      "created": 1786289877.7130482,
+      "updated": 1786289918.9118316,
+      "metadata": {}
+    },
+    "location_city_985be753": {
+      "asset_id": "location_city_985be753",
+      "name": "CITY",
+      "category": "location",
+      "subtype": "",
+      "description": "The sun rises over New Los Angeles. The countdown clock at city center resets: 24:00:00 for the wealthy. In the ghetto below, people hurry to work, clocks blinking red.",
+      "tags": [
+        "location",
+        "in_time",
+        "ep1"
+      ],
+      "series_bindings": [
+        {
+          "series_id": "in_time_television",
+          "seasons": [
+            1
+          ],
+          "episodes": [
+            1
+          ]
+        }
+      ],
+      "versions": [],
+      "current_version": 0,
+      "locked": false,
+      "created": 1786289879.7573295,
+      "updated": 1786289916.8822095,
+      "metadata": {}
+    },
+    "location_time_vault_484c2da6": {
+      "asset_id": "location_time_vault_484c2da6",
+      "name": "TIME VAULT",
+      "category": "location",
+      "subtype": "",
+      "description": "A massive underground vault filled with glowing time capsules. Each capsule holds decades, centuries of stored time. Security cameras everywhere.",
+      "tags": [
+        "location",
+        "in_time",
+        "ep1"
+      ],
+      "series_bindings": [
+        {
+          "series_id": "in_time_television",
+          "seasons": [
+            1
+          ],
+          "episodes": [
+            1
+          ]
+        }
+      ],
+      "versions": [],
+      "current_version": 0,
+      "locked": false,
+      "created": 1786289881.7904434,
+      "updated": 1786289914.834207,
+      "metadata": {}
+    },
+    "location_city_streets_e97dfacc": {
+      "asset_id": "location_city_streets_e97dfacc",
+      "name": "CITY STREETS",
+      "category": "location",
+      "subtype": "",
+      "description": "A chase through the crowded streets. Will and Sylvia dodge flying cars and pedestrians. Time Keeper drones dive after them.",
+      "tags": [
+        "location",
+        "in_time",
+        "ep1"
+      ],
+      "series_bindings": [
+        {
+          "series_id": "in_time_television",
+          "seasons": [
+            1
+          ],
+          "episodes": [
+            1
+          ]
+        }
+      ],
+      "versions": [],
+      "current_version": 0,
+      "locked": false,
+      "created": 1786289883.8208442,
+      "updated": 1786289912.7827992,
+      "metadata": {}
+    },
+    "vehicle_time_keeper_patrol_car_dcf8ccee": {
+      "asset_id": "vehicle_time_keeper_patrol_car_dcf8ccee",
+      "name": "TIME KEEPER patrol car",
+      "category": "vehicle",
+      "subtype": "car",
+      "description": "A car mentioned in the script",
+      "tags": [
+        "vehicle",
+        "in_time",
+        "ep1"
+      ],
+      "series_bindings": [
+        {
+          "series_id": "in_time_television",
+          "seasons": [
+            1
+          ],
+          "episodes": [
+            1
+          ]
+        }
+      ],
+      "versions": [],
+      "current_version": 0,
+      "locked": false,
+      "created": 1786289885.8737435,
+      "updated": 1786289910.752895,
+      "metadata": {}
+    },
+    "vehicle_ride_on_the_transit_pod_429d9b3c": {
+      "asset_id": "vehicle_ride_on_the_transit_pod_429d9b3c",
+      "name": "ride on the transit pod",
+      "category": "vehicle",
+      "subtype": "pod",
+      "description": "A pod mentioned in the script",
+      "tags": [
+        "vehicle",
+        "in_time",
+        "ep1"
+      ],
+      "series_bindings": [
+        {
+          "series_id": "in_time_television",
+          "seasons": [
+            1
+          ],
+          "episodes": [
+            1
+          ]
+        }
+      ],
+      "versions": [],
+      "current_version": 0,
+      "locked": false,
+      "created": 1786289887.9240787,
+      "updated": 1786289908.703888,
+      "metadata": {}
+    },
+    "vehicle_sleek_transit_pod_ca70502e": {
+      "asset_id": "vehicle_sleek_transit_pod_ca70502e",
+      "name": "sleek TRANSIT pod",
+      "category": "vehicle",
+      "subtype": "pod",
+      "description": "A pod mentioned in the script",
+      "tags": [
+        "vehicle",
+        "in_time",
+        "ep1"
+      ],
+      "series_bindings": [
+        {
+          "series_id": "in_time_television",
+          "seasons": [
+            1
+          ],
+          "episodes": [
+            1
+          ]
+        }
+      ],
+      "versions": [],
+      "current_version": 0,
+      "locked": false,
+      "created": 1786289889.9725006,
+      "updated": 1786289906.4560006,
+      "metadata": {}
+    },
+    "object_wea_ring_2a2ac21b": {
+      "asset_id": "object_wea_ring_2a2ac21b",
+      "name": "wea ring",
+      "category": "object",
+      "subtype": "ring",
+      "description": "A ring referenced in the script",
+      "tags": [
+        "object",
+        "in_time",
+        "ep1"
+      ],
+      "series_bindings": [
+        {
+          "series_id": "in_time_television",
+          "seasons": [
+            1
+          ],
+          "episodes": [
+            1
+          ]
+        }
+      ],
+      "versions": [],
+      "current_version": 0,
+      "locked": false,
+      "created": 1786289892.0116265,
+      "updated": 1786289904.2671804,
+      "metadata": {}
+    },
+    "object_towe_ring_61185f76": {
+      "asset_id": "object_towe_ring_61185f76",
+      "name": "towe ring",
+      "category": "object",
+      "subtype": "ring",
+      "description": "A ring referenced in the script",
+      "tags": [
+        "object",
+        "in_time",
+        "ep1"
+      ],
+      "series_bindings": [
+        {
+          "series_id": "in_time_television",
+          "seasons": [
+            1
+          ],
+          "episodes": [
+            1
+          ]
+        }
+      ],
+      "versions": [],
+      "current_version": 0,
+      "locked": false,
+      "created": 1786289894.051125,
+      "updated": 1786289902.2344825,
+      "metadata": {}
+    },
+    "object_ri_chest_bee916b3": {
+      "asset_id": "object_ri_chest_bee916b3",
+      "name": "ri chest",
+      "category": "object",
+      "subtype": "chest",
+      "description": "A chest referenced in the script",
+      "tags": [
+        "object",
+        "in_time",
+        "ep1"
+      ],
+      "series_bindings": [
+        {
+          "series_id": "in_time_television",
+          "seasons": [
+            1
+          ],
+          "episodes": [
+            1
+          ]
+        }
+      ],
+      "versions": [],
+      "current_version": 0,
+      "locked": false,
+      "created": 1786289896.1409385,
+      "updated": 1786289900.2138546,
+      "metadata": {}
+    }
+  }
+}

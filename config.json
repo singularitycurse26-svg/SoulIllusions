@@ -1,0 +1,5 @@
+{
+  "gpu_backend_url": "https://some-anonymous-seed-stay.trycloudflare.com",
+  "auto_open_browser": true,
+  "port": 7860
+}

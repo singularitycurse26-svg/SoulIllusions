@@ -1,0 +1,19 @@
+{
+  "prompt": "tracking shot of SABLE CROSS stands before a HOLOGRAPHIC DISPLAY showing a map of Dayton. A red\n  Direction: Deliver with measured intensity\ndot blinks - an anomaly.\n\nTECH: Captain Cross, we've got a flag. Sable Cross (Tall, striking, mixed-race woman appearing 25 (actually 87). Sharp features, dark hair pulled back in a tight bun. Wears the crisp black uniform of a time-keeper with a silver time-keeper's badge. Her eyes carry the weight of decades she doesn't look old enough to have lived.)., cinematic, dramatic lighting, film still, movie quality, 4k, highly detailed",
+  "script_segment": "SABLE CROSS stands before a HOLOGRAPHIC DISPLAY showing a map of Dayton. A red\n  [Direction: Deliver with measured intensity]\ndot blinks - an anomaly.\n\nTECH: Captain Cross, we've got a flag.",
+  "duration": 5,
+  "model": "ltx",
+  "style": "cinematic",
+  "num_frames": 97,
+  "fps": 24,
+  "steps": 30,
+  "seed": null,
+  "transition": "cut",
+  "transition_duration": 0.5,
+  "scene_number": 68,
+  "status": "pending",
+  "video_path": "",
+  "job_id": "",
+  "retake_count": 0,
+  "created_at": 1786289862.2903552
+}

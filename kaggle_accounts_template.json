@@ -1,0 +1,11 @@
+{
+  "active_account": 0,
+  "accounts": [
+    {
+      "username": "YOUR_KAGGLE_USERNAME",
+      "key": "YOUR_KAGGLE_API_KEY",
+      "hours_used": 0,
+      "last_reset": "2026-01-01"
+    }
+  ]
+}
