@@ -830,6 +830,375 @@ loop();
 </html>'''
 
 
+# --- Lock & Key TV Series Game Template ---
+LOCK_AND_KEY_TEMPLATE = '''<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lock & Key</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #0a0a15; display: flex; justify-content: center; align-items: center; height: 100vh; font-family: 'Georgia', serif; overflow: hidden; }
+canvas { border: 2px solid #1a1a2e; border-radius: 4px; }
+#ui { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); color: #c4a35a; font-size: 16px; z-index: 10; text-shadow: 0 0 10px rgba(196,163,90,0.5); }
+#objective { position: absolute; top: 40px; left: 50%; transform: translateX(-50%); color: #888; font-size: 13px; z-index: 10; }
+#dialogue { position: absolute; bottom: 80px; left: 50%; transform: translateX(-50%); width: 500px; background: rgba(15,15,30,0.9); border: 1px solid #c4a35a; border-radius: 8px; padding: 15px; color: #ddd; font-size: 14px; z-index: 10; display: none; }
+#dialogue .speaker { color: #c4a35a; font-weight: bold; margin-bottom: 5px; }
+#menu { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(10,10,21,0.95); z-index: 20; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+#menu h1 { color: #c4a35a; font-size: 48px; margin-bottom: 10px; text-shadow: 0 0 20px rgba(196,163,90,0.3); }
+#menu p { color: #888; margin-bottom: 30px; font-size: 14px; }
+#menu button { background: #1a1a2e; border: 1px solid #c4a35a; color: #c4a35a; padding: 12px 40px; margin: 5px; cursor: pointer; font-size: 16px; border-radius: 4px; font-family: 'Georgia', serif; transition: all 0.3s; }
+#menu button:hover { background: #c4a35a; color: #0a0a15; }
+</style>
+</head>
+<body>
+<div id="menu">
+  <h1>Lock &amp; Key</h1>
+  <p>Based on the TV Series · A SoulIllusions Game</p>
+  <button onclick="startGame()">Start Game</button>
+  <button onclick="showSettings()">Settings</button>
+  <button onclick="showAbout()">About</button>
+</div>
+<div id="ui">Keys: <span id="keys">0</span> / 3 | Health: <span id="health">100</span></div>
+<div id="objective"></div>
+<div id="dialogue"><div class="speaker"></div><div class="text"></div></div>
+<canvas id="game" width="800" height="500"></canvas>
+<script>
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+const W = canvas.width, H = canvas.height;
+
+var game = {
+  running: false,
+  paused: false,
+  player: { x: 100, y: 250, w: 24, h: 36, speed: 3, health: 100, hasKey: false },
+  keys: 0,
+  totalKeys: 3,
+  level: 1,
+  doors: [],
+  items: [],
+  enemies: [],
+  walls: [],
+  npcs: [],
+  currentRoom: 0,
+  rooms: [],
+  inventory: [],
+  dialogueActive: false,
+  objective: "Find the 3 keys to unlock the main door"
+};
+
+var input = {};
+document.addEventListener('keydown', function(e) { input[e.key.toLowerCase()] = true; if (e.key === 'e') interact(); });
+document.addEventListener('keyup', function(e) { input[e.key.toLowerCase()] = false; });
+
+// Listen for JARVIS commands
+document.addEventListener('jarvis-command', function(e) {
+  var cmd = e.detail.action;
+  var params = e.detail.params;
+  switch(cmd) {
+    case 'start': startGame(); break;
+    case 'pause': game.paused = true; break;
+    case 'resume': game.paused = false; break;
+    case 'restart': location.reload(); break;
+    case 'menu': showMenu(); break;
+    case 'move': movePlayer(params.direction); break;
+    case 'jump': game.player.y -= 30; break;
+    case 'attack': attack(); break;
+    case 'interact': interact(); break;
+    case 'inventory': showInventory(); break;
+    case 'settings': showSettings(); break;
+    case 'character_command': handleCharacterCommand(params.command); break;
+  }
+});
+
+// Register game-specific JARVIS commands
+if (window.jarvisRegisterCommand) {
+  jarvisRegisterCommand('use key', function() { if (game.player.hasKey) { useKey(); return "Using key on door."; } return "No key in inventory."; });
+  jarvisRegisterCommand('open door', function() { interact(); return "Opening door."; });
+  jarvisRegisterCommand('check inventory', function() { showInventory(); return "You have: " + (game.inventory.length ? game.inventory.join(', ') : 'nothing'); });
+  jarvisRegisterCommand('where am i', function() { return "You are in room " + (game.currentRoom + 1) + " of the Keyhouse. Objective: " + game.objective; });
+}
+
+function startGame() {
+  document.getElementById('menu').style.display = 'none';
+  game.running = true;
+  game.paused = false;
+  initLevel();
+  if (window.jarvisSetContext) jarvisSetContext({level: game.level, objective: game.objective, keys: game.keys});
+  loop();
+}
+
+function showMenu() {
+  document.getElementById('menu').style.display = 'flex';
+  game.paused = true;
+}
+
+function showSettings() {
+  showDialogue('Settings', 'Volume: 100% | Difficulty: Normal | Controls: WASD/Arrows + E to interact | JARVIS: Active');
+}
+
+function showAbout() {
+  showDialogue('About', 'Lock & Key - Based on the TV series. Explore Keyhouse, find magical keys, unlock doors, and discover the mystery. Use JARVIS (bottom right) for voice/text control.');
+}
+
+function initLevel() {
+  game.walls = [
+    {x:0, y:0, w:W, h:20}, {x:0, y:H-20, w:W, h:20},
+    {x:0, y:0, w:20, h:H}, {x:W-20, y:0, w:20, h:H},
+    {x:200, y:100, w:20, h:150}, {x:400, y:200, w:20, h:200},
+    {x:550, y:50, w:20, h:180}, {x:300, y:350, w:150, h:20},
+  ];
+  game.doors = [
+    {x: 200, y: 80, w: 30, h: 20, locked: true, keyId: 0},
+    {x: 550, y: 230, w: 30, h: 20, locked: true, keyId: 1},
+    {x: W-50, y: 250, w: 20, h: 60, locked: true, keyId: 2, isExit: true},
+  ];
+  game.items = [
+    {x: 250, y: 150, type: 'key', id: 0, name: 'Ghost Key', collected: false},
+    {x: 450, y: 300, type: 'key', id: 1, name: 'Matchstick Key', collected: false},
+    {x: 600, y: 100, type: 'key', id: 2, name: 'Head Key', collected: false},
+    {x: 100, y: 400, type: 'health', name: 'Health Potion', collected: false},
+  ];
+  game.enemies = [
+    {x: 350, y: 150, w: 20, h: 30, speed: 1, health: 30, dir: 1},
+    {x: 500, y: 350, w: 20, h: 30, speed: 1.5, health: 30, dir: -1},
+  ];
+  game.npcs = [
+    {x: 120, y: 300, name: 'Bode', dialogue: 'The keys are hidden in the house. Find them all to unlock the main door.'},
+    {x: 650, y: 400, name: 'Kinsey', dialogue: 'Be careful, there are shadows in the house. Use E to interact with objects.'},
+  ];
+  game.player.x = 100; game.player.y = 250;
+  game.keys = 0;
+  game.objective = 'Find the 3 keys to unlock the main door';
+  document.getElementById('objective').textContent = game.objective;
+  updateUI();
+}
+
+function movePlayer(dir) {
+  if (!game.running || game.paused) return;
+  var p = game.player;
+  if (dir === 'left') p.x -= p.speed * 3;
+  if (dir === 'right') p.x += p.speed * 3;
+  if (dir === 'up') p.y -= p.speed * 3;
+  if (dir === 'down') p.y += p.speed * 3;
+  clampPlayer();
+}
+
+function attack() {
+  var p = game.player;
+  game.enemies.forEach(function(en) {
+    var dx = en.x - p.x, dy = en.y - p.y;
+    if (Math.sqrt(dx*dx + dy*dy) < 50) {
+      en.health -= 15;
+      if (en.health <= 0) { en.dead = true; }
+    }
+  });
+}
+
+function interact() {
+  if (!game.running) return;
+  var p = game.player;
+  // Check items
+  game.items.forEach(function(item) {
+    if (item.collected) return;
+    var dx = item.x - p.x, dy = item.y - p.y;
+    if (Math.sqrt(dx*dx + dy*dy) < 35) {
+      item.collected = true;
+      if (item.type === 'key') {
+        game.keys++;
+        game.inventory.push(item.name);
+        showDialogue('Found', 'You found the ' + item.name + '! (' + game.keys + '/' + game.totalKeys + ' keys)');
+        if (window.jarvisSpeak) jarvisSpeak('You found the ' + item.name);
+        if (window.jarvisSetContext) jarvisSetContext({level: game.level, objective: game.objective, keys: game.keys});
+      } else if (item.type === 'health') {
+        game.player.health = Math.min(100, game.player.health + 25);
+        showDialogue('Found', 'You found a ' + item.name + '! Health restored.');
+      }
+      updateUI();
+    }
+  });
+  // Check doors
+  game.doors.forEach(function(door) {
+    var dx = door.x - p.x, dy = door.y - p.y;
+    if (Math.sqrt(dx*dx + dy*dy) < 40) {
+      if (door.locked) {
+        if (game.keys > 0 && door.isExit && game.keys >= game.totalKeys) {
+          door.locked = false;
+          showDialogue('Door Unlocked', 'You unlocked the main door! You escape Keyhouse!');
+          if (window.jarvisSpeak) jarvisSpeak('Congratulations! You escaped Keyhouse!');
+          setTimeout(function() { victory(); }, 2000);
+        } else if (!door.isExit) {
+          door.locked = false;
+          showDialogue('Door Opened', 'The door creaks open...');
+        } else {
+          showDialogue('Locked', 'This door needs all ' + game.totalKeys + ' keys. You have ' + game.keys + '.');
+        }
+      }
+    }
+  });
+  // Check NPCs
+  game.npcs.forEach(function(npc) {
+    var dx = npc.x - p.x, dy = npc.y - p.y;
+    if (Math.sqrt(dx*dx + dy*dy) < 40) {
+      showDialogue(npc.name, npc.dialogue);
+    }
+  });
+}
+
+function handleCharacterCommand(cmd) {
+  showDialogue('JARVIS', 'Character command: ' + cmd);
+}
+
+function useKey() {
+  interact();
+}
+
+function showInventory() {
+  if (game.inventory.length === 0) {
+    showDialogue('Inventory', 'Your inventory is empty.');
+  } else {
+    showDialogue('Inventory', game.inventory.join(', '));
+  }
+}
+
+function showDialogue(speaker, text) {
+  var d = document.getElementById('dialogue');
+  d.querySelector('.speaker').textContent = speaker;
+  d.querySelector('.text').textContent = text;
+  d.style.display = 'block';
+  game.dialogueActive = true;
+  setTimeout(function() { d.style.display = 'none'; game.dialogueActive = false; }, 4000);
+}
+
+function updateUI() {
+  document.getElementById('keys').textContent = game.keys;
+  document.getElementById('health').textContent = game.player.health;
+}
+
+function clampPlayer() {
+  var p = game.player;
+  p.x = Math.max(20, Math.min(W - p.w - 20, p.x));
+  p.y = Math.max(20, Math.min(H - p.h - 20, p.y));
+}
+
+function update() {
+  if (!game.running || game.paused || game.dialogueActive) return;
+  var p = game.player;
+  
+  if (input['arrowleft'] || input['a']) p.x -= p.speed;
+  if (input['arrowright'] || input['d']) p.x += p.speed;
+  if (input['arrowup'] || input['w']) p.y -= p.speed;
+  if (input['arrowdown'] || input['s']) p.y += p.speed;
+  clampPlayer();
+  
+  // Enemy AI
+  game.enemies.forEach(function(en) {
+    if (en.dead) return;
+    en.x += en.speed * en.dir;
+    if (en.x < 50 || en.x > W - 50) en.dir *= -1;
+    var dx = en.x - p.x, dy = en.y - p.y;
+    if (Math.sqrt(dx*dx + dy*dy) < 25) {
+      p.health -= 0.5;
+      updateUI();
+      if (p.health <= 0) gameOver();
+    }
+  });
+}
+
+function draw() {
+  ctx.fillStyle = '#0a0a15';
+  ctx.fillRect(0, 0, W, H);
+  
+  // Draw walls
+  ctx.fillStyle = '#1a1a2e';
+  game.walls.forEach(function(w) { ctx.fillRect(w.x, w.y, w.w, w.h); });
+  
+  // Draw doors
+  game.doors.forEach(function(d) {
+    ctx.fillStyle = d.locked ? '#4a2a1a' : '#c4a35a';
+    ctx.fillRect(d.x, d.y, d.w, d.h);
+    if (d.locked) {
+      ctx.fillStyle = '#c4a35a';
+      ctx.font = '12px Georgia';
+      ctx.fillText('\\u{1F512}', d.x + 5, d.y + 15);
+    }
+  });
+  
+  // Draw items
+  game.items.forEach(function(item) {
+    if (item.collected) return;
+    ctx.fillStyle = item.type === 'key' ? '#c4a35a' : '#22c55e';
+    ctx.beginPath();
+    ctx.arc(item.x, item.y, 8, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#fff';
+    ctx.font = '9px Georgia';
+    ctx.fillText(item.name, item.x - 25, item.y + 20);
+  });
+  
+  // Draw NPCs
+  game.npcs.forEach(function(npc) {
+    ctx.fillStyle = '#4fc3f7';
+    ctx.fillRect(npc.x - 10, npc.y - 15, 20, 30);
+    ctx.fillStyle = '#fff';
+    ctx.font = '10px Georgia';
+    ctx.fillText(npc.name, npc.x - 12, npc.y + 25);
+  });
+  
+  // Draw enemies
+  game.enemies.forEach(function(en) {
+    if (en.dead) return;
+    ctx.fillStyle = '#e94560';
+    ctx.fillRect(en.x - en.w/2, en.y - en.h/2, en.w, en.h);
+  });
+  
+  // Draw player
+  var p = game.player;
+  ctx.fillStyle = '#c4a35a';
+  ctx.fillRect(p.x - p.w/2, p.y - p.h/2, p.w, p.h);
+  ctx.fillStyle = '#fff';
+  ctx.font = '10px Georgia';
+  ctx.fillText('You', p.x - 8, p.y + p.h/2 + 12);
+}
+
+function gameOver() {
+  game.running = false;
+  ctx.fillStyle = 'rgba(0,0,0,0.8)';
+  ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = '#e94560';
+  ctx.font = '36px Georgia';
+  ctx.textAlign = 'center';
+  ctx.fillText('GAME OVER', W/2, H/2);
+  ctx.fillStyle = '#888';
+  ctx.font = '16px Georgia';
+  ctx.fillText('Press R to restart', W/2, H/2 + 40);
+  if (window.jarvisSpeak) jarvisSpeak('Game over. Say restart to try again.');
+  document.addEventListener('keydown', function(e) { if (e.key.toLowerCase() === 'r') location.reload(); }, { once: true });
+}
+
+function victory() {
+  game.running = false;
+  ctx.fillStyle = 'rgba(0,0,0,0.8)';
+  ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = '#c4a35a';
+  ctx.font = '36px Georgia';
+  ctx.textAlign = 'center';
+  ctx.fillText('YOU ESCAPED!', W/2, H/2);
+  ctx.fillStyle = '#888';
+  ctx.font = '16px Georgia';
+  ctx.fillText('Lock & Key - Complete', W/2, H/2 + 40);
+  ctx.fillText('Press R to play again', W/2, H/2 + 70);
+  document.addEventListener('keydown', function(e) { if (e.key.toLowerCase() === 'r') location.reload(); }, { once: true });
+}
+
+function loop() { if (game.running) { update(); draw(); requestAnimationFrame(loop); } }
+draw();
+</script>
+</body>
+</html>'''
+
+
 # Template registry
 TEMPLATES = {
     "platformer": PLATFORMER_TEMPLATE,
@@ -837,6 +1206,7 @@ TEMPLATES = {
     "puzzle": PUZZLE_TEMPLATE,
     "racing": RACING_TEMPLATE,
     "arcade": ARCADE_TEMPLATE,
+    "lock_and_key": LOCK_AND_KEY_TEMPLATE,
 }
 
 
@@ -899,10 +1269,443 @@ Output the complete HTML code:"""
     return html
 
 
+# --- JARVIS In-Game Control System ---
+JARVIS_INJECTION = '''
+<!-- JARVIS In-Game Control System -->
+<div id="jarvisCellphone" style="position:fixed;bottom:15px;right:15px;width:50px;height:50px;
+  background:linear-gradient(135deg,#1a1a2e,#16213e);border:2px solid #0f3460;border-radius:12px;
+  cursor:pointer;z-index:99999;display:flex;align-items:center;justify-content:center;
+  box-shadow:0 4px 15px rgba(0,0,0,0.5);transition:all 0.3s;" 
+  onmouseover="this.style.transform='scale(1.1)'" 
+  onmouseout="this.style.transform='scale(1)'"
+  onclick="jarvisToggle()">
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#e94560" stroke-width="2">
+    <rect x="5" y="2" width="14" height="20" rx="2"/>
+    <line x1="12" y1="18" x2="12" y2="18"/>
+  </svg>
+</div>
+
+<div id="jarvisPhone" style="display:none;position:fixed;bottom:75px;right:15px;width:320px;
+  background:linear-gradient(180deg,#0f0f1e,#1a1a2e);border:2px solid #0f3460;border-radius:20px;
+  z-index:99999;box-shadow:0 10px 40px rgba(0,0,0,0.7);overflow:hidden;font-family:'Segoe UI',sans-serif;">
+  
+  <div style="background:linear-gradient(90deg,#e94560,#0f3460);padding:12px 16px;color:#fff;
+    font-size:14px;font-weight:bold;display:flex;justify-content:space-between;align-items:center;">
+    <span>JARVIS</span>
+    <span onclick="jarvisToggle()" style="cursor:pointer;font-size:18px;">&times;</span>
+  </div>
+  
+  <div style="padding:10px;">
+    <div id="jarvisTabs" style="display:flex;gap:5px;margin-bottom:10px;">
+      <button id="jarvisTabVoice" onclick="jarvisSwitchTab('voice')" 
+        style="flex:1;padding:8px;background:#0f3460;border:none;border-radius:8px;color:#fff;cursor:pointer;font-size:12px;">Voice</button>
+      <button id="jarvisTabText" onclick="jarvisSwitchTab('text')" 
+        style="flex:1;padding:8px;background:#1a1a2e;border:1px solid #333;border-radius:8px;color:#888;cursor:pointer;font-size:12px;">Text</button>
+    </div>
+    
+    <div id="jarvisVoicePanel">
+      <div id="jarvisStatus" style="text-align:center;padding:15px;color:#888;font-size:12px;">
+        Tap to speak to JARVIS
+      </div>
+      <button id="jarvisMicBtn" onclick="jarvisToggleVoice()" 
+        style="width:60px;height:60px;border-radius:50%;background:#e94560;border:none;
+        margin:0 auto;display:block;cursor:pointer;transition:all 0.3s;"
+        title="Hold to speak">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"
+          style="vertical-align:middle;">
+          <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+          <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+          <line x1="12" y1="19" x2="12" y2="23"/>
+        </svg>
+      </button>
+    </div>
+    
+    <div id="jarvisTextPanel" style="display:none;">
+      <textarea id="jarvisTextInput" placeholder="Type a command to JARVIS..." rows="3"
+        style="width:100%;background:#1a1a2e;border:1px solid #333;border-radius:8px;
+        color:#fff;padding:10px;font-size:13px;resize:none;font-family:sans-serif;"></textarea>
+      <button onclick="jarvisSendText()" 
+        style="width:100%;padding:10px;margin-top:8px;background:#e94560;border:none;
+        border-radius:8px;color:#fff;cursor:pointer;font-size:13px;font-weight:bold;">Send Command</button>
+    </div>
+    
+    <div id="jarvisLog" style="margin-top:10px;max-height:150px;overflow-y:auto;
+      background:#0a0a15;border-radius:8px;padding:8px;font-size:11px;color:#888;">
+      <div style="color:#e94560;font-weight:bold;">JARVIS Online.</div>
+      <div style="color:#888;">Try: "start game", "open settings", "go left", "attack", "jump"</div>
+    </div>
+    
+    <div style="margin-top:8px;font-size:10px;color:#555;text-align:center;">
+      JARVIS can control menus, settings, and gameplay
+    </div>
+  </div>
+</div>
+
+<script>
+// === JARVIS In-Game Control System ===
+var jarvisState = {
+  open: false,
+  listening: false,
+  recognition: null,
+  synth: window.speechSynthesis || null,
+  gameCommands: {},
+  gameContext: null
+};
+
+function jarvisToggle() {
+  var phone = document.getElementById('jarvisPhone');
+  var cell = document.getElementById('jarvisCellphone');
+  jarvisState.open = !jarvisState.open;
+  phone.style.display = jarvisState.open ? 'block' : 'none';
+  cell.style.opacity = jarvisState.open ? '0.5' : '1';
+  if (jarvisState.open) {
+    jarvisLog("JARVIS ready. How can I help?", 'system');
+    jarvisInitVoice();
+  }
+}
+
+function jarvisSwitchTab(tab) {
+  var voicePanel = document.getElementById('jarvisVoicePanel');
+  var textPanel = document.getElementById('jarvisTextPanel');
+  var voiceBtn = document.getElementById('jarvisTabVoice');
+  var textBtn = document.getElementById('jarvisTabText');
+  if (tab === 'voice') {
+    voicePanel.style.display = 'block';
+    textPanel.style.display = 'none';
+    voiceBtn.style.background = '#0f3460'; voiceBtn.style.color = '#fff';
+    textBtn.style.background = '#1a1a2e'; textBtn.style.color = '#888';
+  } else {
+    voicePanel.style.display = 'none';
+    textPanel.style.display = 'block';
+    textBtn.style.background = '#0f3460'; textBtn.style.color = '#fff';
+    voiceBtn.style.background = '#1a1a2e'; voiceBtn.style.color = '#888';
+  }
+}
+
+function jarvisInitVoice() {
+  if (jarvisState.recognition) return;
+  var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (SR) {
+    jarvisState.recognition = new SR();
+    jarvisState.recognition.continuous = false;
+    jarvisState.recognition.interimResults = false;
+    jarvisState.recognition.lang = 'en-US';
+    jarvisState.recognition.onresult = function(event) {
+      var transcript = event.results[0][0].transcript;
+      jarvisLog("You: " + transcript, 'user');
+      jarvisProcessCommand(transcript);
+    };
+    jarvisState.recognition.onerror = function(event) {
+      jarvisLog("Voice error: " + event.error, 'error');
+      jarvisState.listening = false;
+      jarvisUpdateMicUI();
+    };
+    jarvisState.recognition.onend = function() {
+      jarvisState.listening = false;
+      jarvisUpdateMicUI();
+    };
+  }
+}
+
+function jarvisToggleVoice() {
+  if (!jarvisState.recognition) {
+    jarvisLog("Voice recognition not supported. Use text tab.", 'error');
+    jarvisSwitchTab('text');
+    return;
+  }
+  if (jarvisState.listening) {
+    jarvisState.recognition.stop();
+  } else {
+    try {
+      jarvisState.recognition.start();
+      jarvisState.listening = true;
+      jarvisLog("Listening...", 'system');
+    } catch(e) { jarvisLog("Could not start listening: " + e, 'error'); }
+  }
+  jarvisUpdateMicUI();
+}
+
+function jarvisUpdateMicUI() {
+  var btn = document.getElementById('jarvisMicBtn');
+  var status = document.getElementById('jarvisStatus');
+  if (jarvisState.listening) {
+    btn.style.background = '#22c55e';
+    btn.style.boxShadow = '0 0 20px rgba(34,197,94,0.5)';
+    status.textContent = 'Listening...';
+    status.style.color = '#22c55e';
+  } else {
+    btn.style.background = '#e94560';
+    btn.style.boxShadow = 'none';
+    status.textContent = 'Tap to speak to JARVIS';
+    status.style.color = '#888';
+  }
+}
+
+function jarvisSendText() {
+  var input = document.getElementById('jarvisTextInput');
+  var cmd = input.value.trim();
+  if (!cmd) return;
+  jarvisLog("You: " + cmd, 'user');
+  jarvisProcessCommand(cmd);
+  input.value = '';
+}
+
+function jarvisLog(msg, type) {
+  var log = document.getElementById('jarvisLog');
+  var div = document.createElement('div');
+  var colors = {'user':'#4fc3f7','system':'#e94560','error':'#ef4444','action':'#22c55e','jarvis':'#e94560'};
+  div.style.color = colors[type] || '#888';
+  div.style.marginTop = '4px';
+  div.textContent = msg;
+  log.appendChild(div);
+  log.scrollTop = log.scrollHeight;
+}
+
+function jarvisSpeak(text) {
+  if (jarvisState.synth) {
+    var utter = new SpeechSynthesisUtterance(text);
+    utter.rate = 1.0; utter.pitch = 0.8; utter.volume = 0.7;
+    jarvisState.synth.speak(utter);
+  }
+  jarvisLog("JARVIS: " + text, 'jarvis');
+}
+
+function jarvisProcessCommand(cmd) {
+  cmd = cmd.toLowerCase().trim();
+  
+  // --- Menu/Settings Commands ---
+  if (cmd.match(/start.*game|begin|play|new game/)) {
+    jarvisExecute('start');
+    jarvisSpeak("Starting the game.");
+    return;
+  }
+  if (cmd.match(/open.*settings|settings|options|configure/)) {
+    jarvisExecute('settings');
+    jarvisSpeak("Opening settings.");
+    return;
+  }
+  if (cmd.match(/pause|stop.*game/)) {
+    jarvisExecute('pause');
+    jarvisSpeak("Game paused.");
+    return;
+  }
+  if (cmd.match(/resume|continue|unpause/)) {
+    jarvisExecute('resume');
+    jarvisSpeak("Resuming game.");
+    return;
+  }
+  if (cmd.match(/restart|reset|new game/)) {
+    jarvisExecute('restart');
+    jarvisSpeak("Restarting game.");
+    return;
+  }
+  if (cmd.match(/menu|main menu|back/)) {
+    jarvisExecute('menu');
+    jarvisSpeak("Returning to main menu.");
+    return;
+  }
+  if (cmd.match(/quit|exit|close/)) {
+    jarvisExecute('quit');
+    jarvisSpeak("Exiting game.");
+    return;
+  }
+  if (cmd.match(/help|what.*can.*you.*do|commands/)) {
+    jarvisSpeak("I can control the game. Try saying go left, go right, jump, attack, interact, open inventory, or use item.");
+    return;
+  }
+  
+  // --- Movement Commands ---
+  if (cmd.match(/go.*left|move.*left|walk.*left|left/)) {
+    jarvisSimKey('ArrowLeft');
+    jarvisExecute('move', {direction: 'left'});
+    jarvisLog("Moving left", 'action');
+    return;
+  }
+  if (cmd.match(/go.*right|move.*right|walk.*right|right/)) {
+    jarvisSimKey('ArrowRight');
+    jarvisExecute('move', {direction: 'right'});
+    jarvisLog("Moving right", 'action');
+    return;
+  }
+  if (cmd.match(/go.*up|move.*up|forward|up/)) {
+    jarvisSimKey('ArrowUp');
+    jarvisExecute('move', {direction: 'up'});
+    jarvisLog("Moving up", 'action');
+    return;
+  }
+  if (cmd.match(/go.*down|move.*down|back.*down|down/)) {
+    jarvisSimKey('ArrowDown');
+    jarvisExecute('move', {direction: 'down'});
+    jarvisLog("Moving down", 'action');
+    return;
+  }
+  
+  // --- Action Commands ---
+  if (cmd.match(/jump|hop/)) {
+    jarvisSimKey(' ');
+    jarvisSimKey('ArrowUp');
+    jarvisExecute('jump');
+    jarvisLog("Jumping", 'action');
+    return;
+  }
+  if (cmd.match(/attack|fight|hit|shoot|fire/)) {
+    jarvisSimKey(' ');
+    jarvisSimKey('f');
+    jarvisExecute('attack');
+    jarvisLog("Attacking", 'action');
+    return;
+  }
+  if (cmd.match(/interact|use|activate|talk|open.*door/)) {
+    jarvisSimKey('e');
+    jarvisExecute('interact');
+    jarvisLog("Interacting", 'action');
+    return;
+  }
+  if (cmd.match(/inventory|items|bag|backpack/)) {
+    jarvisSimKey('i');
+    jarvisExecute('inventory');
+    jarvisSpeak("Opening inventory.");
+    return;
+  }
+  if (cmd.match(/map|where.*am.*i|location/)) {
+    jarvisSimKey('m');
+    jarvisExecute('map');
+    jarvisSpeak("Opening map.");
+    return;
+  }
+  if (cmd.match(/save|save.*game/)) {
+    jarvisExecute('save');
+    jarvisSpeak("Game saved.");
+    return;
+  }
+  if (cmd.match(/run|sprint|dash/)) {
+    jarvisSimKey('Shift');
+    jarvisExecute('sprint');
+    jarvisLog("Sprinting", 'action');
+    return;
+  }
+  if (cmd.match(/dodge|roll|dodge.*roll/)) {
+    jarvisSimKey('Shift');
+    jarvisExecute('dodge');
+    jarvisLog("Dodging", 'action');
+    return;
+  }
+  if (cmd.match(/crouch|duck|sneak|stealth/)) {
+    jarvisSimKey('Control');
+    jarvisExecute('crouch');
+    jarvisLog("Crouching", 'action');
+    return;
+  }
+  
+  // --- Character Commands ---
+  if (cmd.match(/look.*around|scan|survey/)) {
+    jarvisExecute('look_around');
+    jarvisSpeak("Scanning the area.");
+    return;
+  }
+  if (cmd.match(/follow.*path|follow.*road|follow.*trail/)) {
+    jarvisExecute('follow_path');
+    jarvisSpeak("Following the path.");
+    return;
+  }
+  if (cmd.match(/find.*item|search.*for|look.*for/)) {
+    var item = cmd.replace(/.*(?:find|search for|look for)/, '').trim();
+    jarvisExecute('find_item', {item: item});
+    jarvisSpeak("Searching for " + item);
+    return;
+  }
+  if (cmd.match(/go.*to|navigate.*to|head.*to|travel.*to/)) {
+    var dest = cmd.replace(/.*(?:go to|navigate to|head to|travel to)/, '').trim();
+    jarvisExecute('goto', {destination: dest});
+    jarvisSpeak("Navigating to " + dest);
+    return;
+  }
+  if (cmd.match(/talk.*to|speak.*to|approach/)) {
+    var target = cmd.replace(/.*(?:talk to|speak to|approach)/, '').trim();
+    jarvisExecute('talk_to', {target: target});
+    jarvisSpeak("Approaching " + target);
+    return;
+  }
+  
+  // --- Game-specific custom commands ---
+  if (jarvisState.gameCommands && jarvisState.gameCommands[cmd]) {
+    var result = jarvisState.gameCommands[cmd]();
+    if (result) jarvisSpeak(result);
+    return;
+  }
+  
+  // --- Free-form character command ---
+  jarvisExecute('character_command', {command: cmd});
+  jarvisSpeak("Telling character to: " + cmd);
+}
+
+function jarvisSimKey(key) {
+  var events = ['keydown', 'keyup'];
+  events.forEach(function(type) {
+    var ev = new KeyboardEvent(type, {
+      key: key, code: key, keyCode: key.charCodeAt(0),
+      bubbles: true, cancelable: true
+    });
+    document.dispatchEvent(ev);
+    if (window.canvas) window.canvas.dispatchEvent(ev);
+  });
+}
+
+function jarvisExecute(action, params) {
+  params = params || {};
+  // Dispatch custom event that games can listen for
+  var ev = new CustomEvent('jarvis-command', {
+    detail: {action: action, params: params, timestamp: Date.now()}
+  });
+  document.dispatchEvent(ev);
+  
+  // Also call global game hook if registered
+  if (typeof window.jarvisGameHook === 'function') {
+    try { window.jarvisGameHook(action, params); } catch(e) {}
+  }
+}
+
+// Games register custom commands via: jarvisRegisterCommand('cast spell', function() { ... })
+function jarvisRegisterCommand(phrase, handler) {
+  if (!jarvisState.gameCommands) jarvisState.gameCommands = {};
+  jarvisState.gameCommands[phrase.toLowerCase()] = handler;
+}
+
+// Games set context: jarvisSetContext({level: 3, objective: 'Find the key'})
+function jarvisSetContext(ctx) {
+  jarvisState.gameContext = ctx;
+}
+
+// Expose globally
+window.jarvisToggle = jarvisToggle;
+window.jarvisSwitchTab = jarvisSwitchTab;
+window.jarvisToggleVoice = jarvisToggleVoice;
+window.jarvisSendText = jarvisSendText;
+window.jarvisRegisterCommand = jarvisRegisterCommand;
+window.jarvisSetContext = jarvisSetContext;
+window.jarvisExecute = jarvisExecute;
+window.jarvisSpeak = jarvisSpeak;
+window.jarvisState = jarvisState;
+</script>
+'''
+
+
+def inject_jarvis(html: str) -> str:
+    """Inject JARVIS in-game control system into game HTML."""
+    if "jarvisCellphone" in html:
+        return html  # Already injected
+    # Inject before </body>
+    if "</body>" in html:
+        return html.replace("</body>", JARVIS_INJECTION + "\n</body>")
+    # Fallback: append
+    return html + JARVIS_INJECTION
+
+
 def generate_game_from_template(title: str, genre: str, prompt: str) -> str:
     """Generate a game from a template (instant, no AI needed)."""
     template = TEMPLATES.get(genre, ARCADE_TEMPLATE)
-    return template.replace("{{TITLE}}", title)
+    html = template.replace("{{TITLE}}", title)
+    return inject_jarvis(html)
 
 
 # --- Game Manager ---
@@ -925,6 +1728,9 @@ class GameManager:
                 html = generate_game_from_template(title, genre or "arcade", prompt)
         else:
             html = generate_game_from_template(title, genre or "arcade", prompt)
+        
+        # Inject JARVIS in-game control system into all games
+        html = inject_jarvis(html)
         
         # Save to file
         safe_title = re.sub(r'[^a-zA-Z0-9_-]', '_', title.lower())[:50]

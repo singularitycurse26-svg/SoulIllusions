@@ -6637,6 +6637,139 @@ async def books_export(book_id: int, request: Request):
         return JSONResponse({"error": str(e)}, status_code=500)
 
 
+# === Movie & TV Analyzer API ===
+try:
+    from movie_analyzer import get_movie_engine
+    movie_engine = get_movie_engine()
+    MOVIE_ANALYZER_AVAILABLE = True
+except Exception as e:
+    print(f"[Server] Movie Analyzer not available: {e}")
+    MOVIE_ANALYZER_AVAILABLE = False
+
+
+@app.post("/api/movies/analyze")
+async def api_analyze_movie(request: Request):
+    if not MOVIE_ANALYZER_AVAILABLE:
+        return JSONResponse({"error": "Movie analyzer not available"}, status_code=500)
+    body = await request.json()
+    title = body.get("title", "")
+    source = body.get("source", "auto")
+    source_url = body.get("source_url", "")
+    description = body.get("description", "")
+    media_type = body.get("media_type", "movie")
+    if not title:
+        return JSONResponse({"error": "Title required"}, status_code=400)
+    try:
+        result = await movie_engine.analyze_movie(title, source, source_url, description, media_type)
+        return result
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+
+@app.get("/api/movies/list")
+def api_list_movies(media_type: str = ""):
+    if not MOVIE_ANALYZER_AVAILABLE:
+        return JSONResponse({"error": "Movie analyzer not available"}, status_code=500)
+    return {"movies": movie_engine.list_movies(media_type=media_type)}
+
+
+@app.get("/api/movies/{movie_id}")
+def api_get_movie(movie_id: int):
+    if not MOVIE_ANALYZER_AVAILABLE:
+        return JSONResponse({"error": "Movie analyzer not available"}, status_code=500)
+    movie = movie_engine.get_movie(movie_id)
+    if not movie:
+        return JSONResponse({"error": "Movie not found"}, status_code=404)
+    return movie
+
+
+@app.delete("/api/movies/{movie_id}")
+def api_delete_movie(movie_id: int):
+    if not MOVIE_ANALYZER_AVAILABLE:
+        return JSONResponse({"error": "Movie analyzer not available"}, status_code=500)
+    return movie_engine.delete_movie(movie_id)
+
+
+@app.post("/api/movies/combine")
+async def api_combine_movies(request: Request):
+    if not MOVIE_ANALYZER_AVAILABLE:
+        return JSONResponse({"error": "Movie analyzer not available"}, status_code=500)
+    body = await request.json()
+    movie_ids = body.get("movie_ids", [])
+    title = body.get("title", "")
+    twist = body.get("twist_description", "")
+    if not movie_ids or len(movie_ids) < 2:
+        return JSONResponse({"error": "At least 2 movie IDs required"}, status_code=400)
+    try:
+        result = await movie_engine.combine_movies(movie_ids, title, twist)
+        return result
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+
+@app.get("/api/movies/combinations")
+def api_list_combinations():
+    if not MOVIE_ANALYZER_AVAILABLE:
+        return JSONResponse({"error": "Movie analyzer not available"}, status_code=500)
+    return {"combinations": movie_engine.list_combinations()}
+
+
+@app.get("/api/movies/combinations/{combo_id}")
+def api_get_combination(combo_id: int):
+    if not MOVIE_ANALYZER_AVAILABLE:
+        return JSONResponse({"error": "Movie analyzer not available"}, status_code=500)
+    combo = movie_engine.get_combination(combo_id)
+    if not combo:
+        return JSONResponse({"error": "Combination not found"}, status_code=404)
+    return combo
+
+
+@app.get("/api/movies/{movie_id}/for-video")
+def api_movie_for_video(movie_id: int):
+    if not MOVIE_ANALYZER_AVAILABLE:
+        return JSONResponse({"error": "Movie analyzer not available"}, status_code=500)
+    return movie_engine.get_for_video(movie_id)
+
+
+@app.get("/api/movies/{movie_id}/for-game")
+def api_movie_for_game(movie_id: int):
+    if not MOVIE_ANALYZER_AVAILABLE:
+        return JSONResponse({"error": "Movie analyzer not available"}, status_code=500)
+    return movie_engine.get_for_game(movie_id)
+
+
+@app.get("/api/movies/combinations/{combo_id}/for-video")
+def api_combo_for_video(combo_id: int):
+    if not MOVIE_ANALYZER_AVAILABLE:
+        return JSONResponse({"error": "Movie analyzer not available"}, status_code=500)
+    return movie_engine.get_combination_for_video(combo_id)
+
+
+@app.get("/api/movies/combinations/{combo_id}/for-game")
+def api_combo_for_game(combo_id: int):
+    if not MOVIE_ANALYZER_AVAILABLE:
+        return JSONResponse({"error": "Movie analyzer not available"}, status_code=500)
+    return movie_engine.get_combination_for_game(combo_id)
+
+
+@app.post("/api/games/create-lock-and-key")
+def api_create_lock_and_key():
+    """Create the Lock & Key game with JARVIS integration."""
+    try:
+        from text_to_games import get_game_manager
+        mgr = get_game_manager()
+        result = mgr.create_game(
+            prompt="Lock and Key TV series game - explore Keyhouse, find magical keys, unlock doors",
+            genre="lock_and_key",
+            title="Lock & Key",
+            use_ai=False,
+            created_by="system"
+        )
+        return result
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+
 # === Main ===
 def open_browser():
     time.sleep(1.5)

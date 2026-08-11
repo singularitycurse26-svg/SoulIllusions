@@ -1279,6 +1279,7 @@
             <button class="tab" onclick="switchTab('games')">Text-to-Games</button>
             <button class="tab" onclick="switchTab('verify')">Phone Verify</button>
             <button class="tab" onclick="switchTab('books')">Book Writer</button>
+            <button class="tab" onclick="switchTab('movies')">Movie Analyzer</button>
         </div>
         
         <!-- Tab: Video Maker -->
@@ -2409,8 +2410,112 @@
                 </div>
             </div>
         </div>
+    
+    <!-- Tab: Movie Analyzer -->
+    <div class="tab-content" id="tab-movies">
+        <div style="display:flex;gap:20px;height:calc(100vh - 140px);">
+            
+            <!-- Left: Analyzed Movies Library -->
+            <div style="width:280px;background:var(--panel);border-radius:12px;padding:15px;overflow-y:auto;">
+                <h3 style="margin-bottom:10px;">Movie Library</h3>
+                <button class="btn" style="width:100%;margin-bottom:10px;" onclick="moviesAnalyzeNew()">Analyze New Movie</button>
+                <button class="btn" style="width:100%;margin-bottom:10px;background:var(--accent2);" onclick="moviesShowCombine()">Combine Movies</button>
+                <button class="btn" style="width:100%;margin-bottom:10px;background:var(--accent2);" onclick="moviesShowCombinations()">View Combinations</button>
+                <hr style="border-color:var(--border);margin:10px 0;">
+                <div id="moviesList" style="font-size:0.85em;"></div>
+            </div>
+            
+            <!-- Right: Analysis Viewer -->
+            <div style="flex:1;background:var(--panel);border-radius:12px;padding:20px;overflow-y:auto;">
+                <div id="moviesEmpty" style="text-align:center;padding:40px;color:var(--text-dim);">
+                    <h3>AI Movie & TV Analyzer</h3>
+                    <p>Analyze any movie or TV show from YouTube, Facebook, or text descriptions.</p>
+                    <p>The engine extracts plot, characters, world design, visual style, and game adaptation data.</p>
+                    <p>Combine multiple movies to create new stories with unique plot twists.</p>
+                    <p>Feed analysis data to text-to-video and text-to-game for better quality.</p>
+                </div>
+                
+                <div id="moviesEditor" style="display:none;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;">
+                        <div>
+                            <h2 id="moviesTitle" style="margin:0;"></h2>
+                            <span id="moviesMeta" style="color:var(--text-dim);font-size:0.85em;"></span>
+                        </div>
+                        <div style="display:flex;gap:8px;">
+                            <button class="btn" style="background:var(--accent);" onclick="moviesFeedVideo()">Feed to Video</button>
+                            <button class="btn" style="background:var(--accent2);" onclick="moviesFeedGame()">Feed to Game</button>
+                            <button class="btn" style="background:#ef4444;" onclick="moviesDelete()">Delete</button>
+                        </div>
+                    </div>
+                    
+                    <div style="display:flex;gap:8px;margin-bottom:15px;">
+                        <button class="btn" style="font-size:0.8em;" onclick="moviesShowSection('summary')">Summary</button>
+                        <button class="btn" style="font-size:0.8em;" onclick="moviesShowSection('characters')">Characters</button>
+                        <button class="btn" style="font-size:0.8em;" onclick="moviesShowSection('world')">World Design</button>
+                        <button class="btn" style="font-size:0.8em;" onclick="moviesShowSection('visual')">Visual Style</button>
+                        <button class="btn" style="font-size:0.8em;" onclick="moviesShowSection('scenes')">Key Scenes</button>
+                        <button class="btn" style="font-size:0.8em;" onclick="moviesShowSection('game')">Game Adaptation</button>
+                    </div>
+                    
+                    <div id="moviesSummarySection">
+                        <h4>Plot Summary</h4>
+                        <p id="moviesPlot" style="color:var(--text-dim);margin-bottom:15px;"></p>
+                        
+                        <h4>Plot Structure</h4>
+                        <div id="moviesPlotStructure" style="margin-bottom:15px;"></div>
+                        
+                        <h4>Themes</h4>
+                        <p id="moviesThemes" style="color:var(--text-dim);margin-bottom:15px;"></p>
+                        
+                        <h4>Tone</h4>
+                        <p id="moviesTone" style="color:var(--text-dim);margin-bottom:15px;"></p>
+                        
+                        <h4>Plot Twists</h4>
+                        <div id="moviesTwists" style="margin-bottom:15px;"></div>
+                    </div>
+                    
+                    <div id="moviesCharactersSection" style="display:none;">
+                        <div id="moviesCharactersList"></div>
+                    </div>
+                    
+                    <div id="moviesWorldSection" style="display:none;">
+                        <div id="moviesWorldInfo"></div>
+                    </div>
+                    
+                    <div id="moviesVisualSection" style="display:none;">
+                        <div id="moviesVisualInfo"></div>
+                    </div>
+                    
+                    <div id="moviesScenesSection" style="display:none;">
+                        <div id="moviesScenesList"></div>
+                    </div>
+                    
+                    <div id="moviesGameSection" style="display:none;">
+                        <div id="moviesGameInfo"></div>
+                    </div>
+                </div>
+                
+                <!-- Combine Movies Panel -->
+                <div id="moviesCombinePanel" style="display:none;">
+                    <h3>Combine Multiple Movies</h3>
+                    <p style="color:var(--text-dim);margin-bottom:15px;">Select movies to dissect and combine into a new story with a unique plot twist.</p>
+                    <div id="moviesCombineList" style="margin-bottom:15px;"></div>
+                    <input type="text" id="moviesCombineTitle" placeholder="New movie title (optional)" style="width:100%;padding:10px;margin-bottom:10px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);">
+                    <textarea id="moviesCombineTwist" placeholder="Describe the twist direction (optional)..." rows="3" style="width:100%;padding:10px;margin-bottom:10px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);resize:none;"></textarea>
+                    <button class="btn" style="width:100%;background:var(--accent2);" onclick="moviesDoCombine()">Combine & Create New Movie</button>
+                    <div id="moviesCombineResult" style="margin-top:15px;"></div>
+                </div>
+                
+                <!-- Combinations List -->
+                <div id="moviesCombinationsPanel" style="display:none;">
+                    <h3>Combined Movies</h3>
+                    <div id="moviesCombinationsList"></div>
+                </div>
+            </div>
+        </div>
     </div>
     
+
     <div class="toast" id="toast"></div>
     
     <script>
@@ -2911,6 +3016,7 @@
             if (tab === 'games') gameLoadList();
             if (tab === 'verify') verifyLoadStatus();
             if (tab === 'books') booksLoadList();
+            if (tab === 'movies') moviesLoadList();
         }
         
         // === Production Suite ===
@@ -5870,6 +5976,348 @@ ${details}`);
                 showToast(`Exported to ${data.file}`, 'success');
             } catch(e) {
                 showToast('Export failed', 'error');
+            }
+        }
+
+        // === MOVIE ANALYZER ===
+        let moviesState = { currentMovie: null, allMovies: [], combineSelections: [] };
+
+        async function moviesLoadList() {
+            try {
+                const resp = await fetch('/api/movies/list');
+                const data = await resp.json();
+                moviesState.allMovies = data.movies || [];
+                const el = document.getElementById('moviesList');
+                if (!moviesState.allMovies.length) {
+                    el.innerHTML = '<span style="color:var(--muted);">No movies analyzed yet.</span>';
+                    return;
+                }
+                el.innerHTML = moviesState.allMovies.map(m =>
+                    `<div style="padding:10px;border-bottom:1px solid rgba(255,255,255,0.05);cursor:pointer;" onclick="moviesOpen(${m.id})">` +
+                    `<strong>${m.title}</strong><br><span style="color:var(--muted);font-size:0.8em;">${m.media_type} | ${m.source} | ${m.created_at}</span>` +
+                    `</div>`
+                ).join('');
+            } catch(e) {
+                document.getElementById('moviesList').textContent = 'Error loading movies';
+            }
+        }
+
+        async function moviesAnalyzeNew() {
+            const title = prompt('Movie or TV show title:');
+            if (!title) return;
+            const source = prompt('Source (youtube, facebook, description, auto):', 'auto') || 'auto';
+            let desc = '', url = '';
+            if (source === 'description') {
+                desc = prompt('Paste the movie description, plot summary, or script text:') || '';
+            }
+            if (source === 'url') {
+                url = prompt('Paste YouTube or Facebook URL:') || '';
+            }
+            const mediaType = prompt('Type (movie or tv):', 'movie') || 'movie';
+            
+            showToast('Analyzing movie... This may take a moment.', 'success');
+            try {
+                const resp = await fetch('/api/movies/analyze', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ title, source, source_url: url, description: desc, media_type: mediaType })
+                });
+                const data = await resp.json();
+                if (data.error) { showToast(data.error, 'error'); return; }
+                showToast(`Analyzed: ${data.title}`, 'success');
+                moviesLoadList();
+                moviesOpen(data.id);
+            } catch(e) {
+                showToast('Analysis failed', 'error');
+            }
+        }
+
+        async function moviesOpen(movieId) {
+            try {
+                const resp = await fetch(`/api/movies/${movieId}`);
+                const data = await resp.json();
+                if (data.error) { showToast(data.error, 'error'); return; }
+                moviesState.currentMovie = movieId;
+                
+                document.getElementById('moviesEditor').style.display = 'block';
+                document.getElementById('moviesEmpty').style.display = 'none';
+                document.getElementById('moviesCombinePanel').style.display = 'none';
+                document.getElementById('moviesCombinationsPanel').style.display = 'none';
+                
+                document.getElementById('moviesTitle').textContent = data.title;
+                document.getElementById('moviesMeta').textContent = 
+                    `${data.media_type} | Source: ${data.source} | ${data.created_at}`;
+                
+                const a = data.analysis || {};
+                
+                // Summary
+                document.getElementById('moviesPlot').textContent = a.plot_summary || data.plot_summary || 'N/A';
+                document.getElementById('moviesThemes').textContent = (a.themes || []).join(', ') || 'N/A';
+                document.getElementById('moviesTone').textContent = a.tone || 'N/A';
+                
+                // Plot structure
+                const ps = a.plot_structure || {};
+                let psHtml = '';
+                if (ps.acts && ps.acts.length) {
+                    ps.acts.forEach(act => {
+                        psHtml += `<p><strong>${act.name}</strong>: ${act.summary}</p>`;
+                    });
+                }
+                if (ps.inciting_incident) psHtml += `<p><strong>Inciting Incident</strong>: ${ps.inciting_incident}</p>`;
+                if (ps.climax) psHtml += `<p><strong>Climax</strong>: ${ps.climax}</p>`;
+                if (ps.resolution) psHtml += `<p><strong>Resolution</strong>: ${ps.resolution}</p>`;
+                document.getElementById('moviesPlotStructure').innerHTML = psHtml || 'N/A';
+                
+                // Plot twists
+                const twists = a.plot_twists || [];
+                document.getElementById('moviesTwists').innerHTML = twists.length ?
+                    twists.map(t => `<p style="margin-bottom:5px;">${t}</p>`).join('') : 'None identified';
+                
+                // Characters
+                const chars = a.characters || [];
+                document.getElementById('moviesCharactersList').innerHTML = chars.length ?
+                    chars.map(ch => 
+                        `<div style="padding:12px;border-bottom:1px solid rgba(255,255,255,0.05);">` +
+                        `<strong>${ch.name}</strong> (${ch.role})<br>` +
+                        `<span style="color:var(--muted);font-size:0.85em;">${ch.description || ''}</span><br>` +
+                        (ch.appearance ? `<span style="font-size:0.8em;">Appearance: ${ch.appearance}</span><br>` : '') +
+                        (ch.personality ? `<span style="font-size:0.8em;">Personality: ${ch.personality}</span><br>` : '') +
+                        (ch.arc ? `<span style="font-size:0.8em;">Arc: ${ch.arc}</span>` : '') +
+                        `</div>`
+                    ).join('') : 'No characters extracted';
+                
+                // World design
+                const wd = a.world_design || {};
+                let wdHtml = '';
+                if (wd.setting) wdHtml += `<p><strong>Setting</strong>: ${wd.setting}</p>`;
+                if (wd.time_period) wdHtml += `<p><strong>Time Period</strong>: ${wd.time_period}</p>`;
+                if (wd.atmosphere) wdHtml += `<p><strong>Atmosphere</strong>: ${wd.atmosphere}</p>`;
+                if (wd.technology_level) wdHtml += `<p><strong>Technology</strong>: ${wd.technology_level}</p>`;
+                if (wd.magic_system && wd.magic_system !== 'none') wdHtml += `<p><strong>Magic System</strong>: ${wd.magic_system}</p>`;
+                if (wd.social_structure) wdHtml += `<p><strong>Social Structure</strong>: ${wd.social_structure}</p>`;
+                if (wd.locations && wd.locations.length) wdHtml += `<p><strong>Locations</strong>: ${wd.locations.join(', ')}</p>`;
+                document.getElementById('moviesWorldInfo').innerHTML = wdHtml || 'N/A';
+                
+                // Visual style
+                const vs = a.visual_style || {};
+                let vsHtml = '';
+                if (vs.color_palette) vsHtml += `<p><strong>Colors</strong>: ${Array.isArray(vs.color_palette) ? vs.color_palette.join(', ') : vs.color_palette}</p>`;
+                if (vs.lighting) vsHtml += `<p><strong>Lighting</strong>: ${vs.lighting}</p>`;
+                if (vs.cinematography) vsHtml += `<p><strong>Cinematography</strong>: ${vs.cinematography}</p>`;
+                if (vs.special_effects) vsHtml += `<p><strong>Special Effects</strong>: ${vs.special_effects}</p>`;
+                if (vs.art_direction) vsHtml += `<p><strong>Art Direction</strong>: ${vs.art_direction}</p>`;
+                document.getElementById('moviesVisualInfo').innerHTML = vsHtml || 'N/A';
+                
+                // Key scenes
+                const scenes = a.key_scenes || [];
+                document.getElementById('moviesScenesList').innerHTML = scenes.length ?
+                    scenes.map(s =>
+                        `<div style="padding:12px;border-bottom:1px solid rgba(255,255,255,0.05);">` +
+                        `<strong>${s.scene || 'Scene'}</strong><br>` +
+                        `<span style="color:var(--muted);font-size:0.85em;">${s.description || ''}</span><br>` +
+                        (s.visual_prompt ? `<span style="font-size:0.8em;">Visual: ${s.visual_prompt}</span><br>` : '') +
+                        (s.emotional_impact ? `<span style="font-size:0.8em;">Impact: ${s.emotional_impact}</span>` : '') +
+                        `</div>`
+                    ).join('') : 'No key scenes extracted';
+                
+                // Game adaptation
+                const ga = a.game_adaptation || {};
+                let gaHtml = '';
+                if (ga.suggested_genre) gaHtml += `<p><strong>Suggested Genre</strong>: ${ga.suggested_genre}</p>`;
+                if (ga.player_character) gaHtml += `<p><strong>Player Character</strong>: ${ga.player_character}</p>`;
+                if (ga.antagonist) gaHtml += `<p><strong>Antagonist</strong>: ${ga.antagonist}</p>`;
+                if (ga.key_locations) gaHtml += `<p><strong>Key Locations</strong>: ${ga.key_locations.join(', ')}</p>`;
+                if (ga.key_items) gaHtml += `<p><strong>Key Items</strong>: ${ga.key_items.join(', ')}</p>`;
+                if (ga.mission_structure) gaHtml += `<p><strong>Missions</strong>: ${ga.mission_structure.join(', ')}</p>`;
+                if (ga.world_transfer_notes) gaHtml += `<p><strong>World Transfer Notes</strong>: ${ga.world_transfer_notes}</p>`;
+                document.getElementById('moviesGameInfo').innerHTML = gaHtml || 'N/A';
+                
+                moviesShowSection('summary');
+            } catch(e) {
+                showToast('Failed to open movie', 'error');
+            }
+        }
+
+        function moviesShowSection(section) {
+            ['summary', 'characters', 'world', 'visual', 'scenes', 'game'].forEach(s => {
+                const el = document.getElementById('movies' + s.charAt(0).toUpperCase() + s.slice(1) + 'Section');
+                if (el) el.style.display = s === section ? 'block' : 'none';
+            });
+        }
+
+        async function moviesFeedVideo() {
+            if (!moviesState.currentMovie) return;
+            try {
+                const resp = await fetch(`/api/movies/${moviesState.currentMovie}/for-video`);
+                const data = await resp.json();
+                showToast(`Movie data fed to video: ${data.scene_visual_prompts?.length || 0} scenes, ${data.character_visual_prompts?.length || 0} characters`, 'success');
+                switchTab('maker');
+            } catch(e) {
+                showToast('Failed to feed to video', 'error');
+            }
+        }
+
+        async function moviesFeedGame() {
+            if (!moviesState.currentMovie) return;
+            try {
+                const resp = await fetch(`/api/movies/${moviesState.currentMovie}/for-game`);
+                const data = await resp.json();
+                showToast(`Movie world fed to game: ${data.suggested_genre}, ${data.key_locations?.length || 0} locations`, 'success');
+                switchTab('games');
+            } catch(e) {
+                showToast('Failed to feed to game', 'error');
+            }
+        }
+
+        async function moviesDelete() {
+            if (!moviesState.currentMovie) return;
+            if (!confirm('Delete this movie analysis?')) return;
+            try {
+                await fetch(`/api/movies/${moviesState.currentMovie}`, { method: 'DELETE' });
+                showToast('Movie deleted', 'success');
+                moviesState.currentMovie = null;
+                document.getElementById('moviesEditor').style.display = 'none';
+                document.getElementById('moviesEmpty').style.display = 'block';
+                moviesLoadList();
+            } catch(e) {
+                showToast('Delete failed', 'error');
+            }
+        }
+
+        function moviesShowCombine() {
+            document.getElementById('moviesEditor').style.display = 'none';
+            document.getElementById('moviesEmpty').style.display = 'none';
+            document.getElementById('moviesCombinationsPanel').style.display = 'none';
+            document.getElementById('moviesCombinePanel').style.display = 'block';
+            moviesState.combineSelections = [];
+            
+            const list = document.getElementById('moviesCombineList');
+            if (!moviesState.allMovies.length) {
+                list.innerHTML = '<span style="color:var(--muted);">Analyze some movies first.</span>';
+                return;
+            }
+            list.innerHTML = moviesState.allMovies.map(m =>
+                `<div style="padding:10px;border-bottom:1px solid rgba(255,255,255,0.05);">` +
+                `<label><input type="checkbox" value="${m.id}" onchange="moviesToggleCombine(${m.id})"> ` +
+                `<strong>${m.title}</strong> (${m.media_type})</label></div>`
+            ).join('');
+        }
+
+        function moviesToggleCombine(id) {
+            const idx = moviesState.combineSelections.indexOf(id);
+            if (idx > -1) moviesState.combineSelections.splice(idx, 1);
+            else moviesState.combineSelections.push(id);
+        }
+
+        async function moviesDoCombine() {
+            if (moviesState.combineSelections.length < 2) {
+                showToast('Select at least 2 movies to combine', 'error');
+                return;
+            }
+            const title = document.getElementById('moviesCombineTitle').value || '';
+            const twist = document.getElementById('moviesCombineTwist').value || '';
+            const resultEl = document.getElementById('moviesCombineResult');
+            resultEl.innerHTML = '<p style="color:var(--muted);">Combining movies... This may take a moment.</p>';
+            
+            try {
+                const resp = await fetch('/api/movies/combine', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ movie_ids: moviesState.combineSelections, title, twist_description: twist })
+                });
+                const data = await resp.json();
+                if (data.error) { resultEl.innerHTML = `<p style="color:#ef4444;">${data.error}</p>`; return; }
+                
+                const combined = data.combined || {};
+                resultEl.innerHTML = 
+                    `<div style="padding:15px;background:var(--bg);border-radius:8px;">` +
+                    `<h4>${data.title}</h4>` +
+                    `<p><strong>Plot:</strong> ${combined.combined_plot || data.combined?.combined_plot || 'N/A'}</p>` +
+                    `<p><strong>Plot Twist:</strong> ${combined.plot_twist || data.combined?.plot_twist || 'N/A'}</p>` +
+                    (combined.source_elements_used ? 
+                        `<p><strong>Elements Used:</strong></p><ul>` +
+                        combined.source_elements_used.map(s => 
+                            `<li><strong>${s.movie}</strong>: ${s.elements_taken?.join(', ')}</li>`
+                        ).join('') + `</ul>` : '') +
+                    `<div style="margin-top:10px;display:flex;gap:8px;">` +
+                    `<button class="btn" style="background:var(--accent);" onclick="moviesFeedComboVideo(${data.id})">Feed to Video</button>` +
+                    `<button class="btn" style="background:var(--accent2);" onclick="moviesFeedComboGame(${data.id})">Feed to Game</button>` +
+                    `</div></div>`;
+                showToast('Movies combined!', 'success');
+            } catch(e) {
+                resultEl.innerHTML = `<p style="color:#ef4444;">Error: ${e.message}</p>`;
+            }
+        }
+
+        async function moviesFeedComboVideo(comboId) {
+            try {
+                const resp = await fetch(`/api/movies/combinations/${comboId}/for-video`);
+                const data = await resp.json();
+                showToast(`Combined movie fed to video: ${data.key_scenes?.length || 0} scenes`, 'success');
+                switchTab('maker');
+            } catch(e) { showToast('Failed', 'error'); }
+        }
+
+        async function moviesFeedComboGame(comboId) {
+            try {
+                const resp = await fetch(`/api/movies/combinations/${comboId}/for-game`);
+                const data = await resp.json();
+                showToast(`Combined movie fed to game: ${data.suggested_genre}`, 'success');
+                switchTab('games');
+            } catch(e) { showToast('Failed', 'error'); }
+        }
+
+        async function moviesShowCombinations() {
+            document.getElementById('moviesEditor').style.display = 'none';
+            document.getElementById('moviesEmpty').style.display = 'none';
+            document.getElementById('moviesCombinePanel').style.display = 'none';
+            document.getElementById('moviesCombinationsPanel').style.display = 'block';
+            
+            try {
+                const resp = await fetch('/api/movies/combinations');
+                const data = await resp.json();
+                const el = document.getElementById('moviesCombinationsList');
+                if (!data.combinations || !data.combinations.length) {
+                    el.innerHTML = '<span style="color:var(--muted);">No combinations yet. Use "Combine Movies" to create one.</span>';
+                    return;
+                }
+                el.innerHTML = data.combinations.map(c =>
+                    `<div style="padding:12px;border-bottom:1px solid rgba(255,255,255,0.05);cursor:pointer;" onclick="moviesOpenCombination(${c.id})">` +
+                    `<strong>${c.title}</strong><br><span style="color:var(--muted);font-size:0.8em;">${c.created_at}</span>` +
+                    `</div>`
+                ).join('');
+            } catch(e) {
+                document.getElementById('moviesCombinationsList').textContent = 'Error loading combinations';
+            }
+        }
+
+        async function moviesOpenCombination(comboId) {
+            try {
+                const resp = await fetch(`/api/movies/combinations/${comboId}`);
+                const data = await resp.json();
+                if (data.error) { showToast(data.error, 'error'); return; }
+                
+                const combined = data.combined_analysis || {};
+                const el = document.getElementById('moviesCombinationsList');
+                el.innerHTML = 
+                    `<div style="padding:15px;background:var(--bg);border-radius:8px;">` +
+                    `<button class="btn" style="margin-bottom:10px;font-size:0.8em;" onclick="moviesShowCombinations()">Back</button>` +
+                    `<h3>${data.title}</h3>` +
+                    `<p><strong>Plot:</strong> ${data.new_plot || combined.combined_plot || 'N/A'}</p>` +
+                    `<p><strong>Plot Twist:</strong> ${data.plot_twist || combined.plot_twist || 'N/A'}</p>` +
+                    (combined.characters ? `<p><strong>Characters:</strong></p>` + 
+                        (Array.isArray(combined.characters) ? combined.characters.map(ch => 
+                            `<div style="margin:5px 0;"><strong>${ch.name}</strong> (${ch.role || ''}) from ${ch.origin_movie || 'mixed'}<br>` +
+                            `<span style="font-size:0.85em;color:var(--muted);">${ch.description || ''}</span></div>`
+                        ).join('') : '') : '') +
+                    (combined.world_design ? `<p><strong>World:</strong> ${JSON.stringify(combined.world_design).substring(0, 300)}</p>` : '') +
+                    (combined.themes ? `<p><strong>Themes:</strong> ${combined.themes.join(', ')}</p>` : '') +
+                    `<div style="margin-top:10px;display:flex;gap:8px;">` +
+                    `<button class="btn" style="background:var(--accent);" onclick="moviesFeedComboVideo(${data.id})">Feed to Video</button>` +
+                    `<button class="btn" style="background:var(--accent2);" onclick="moviesFeedComboGame(${data.id})">Feed to Game</button>` +
+                    `</div></div>`;
+            } catch(e) {
+                showToast('Failed to open combination', 'error');
             }
         }
 

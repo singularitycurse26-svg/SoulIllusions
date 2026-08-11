@@ -18,3 +18,4 @@ kaggle_accounts.json
 *.jsonl
 book_library/audiobooks/
 book_library/exports/
+movie_analysis/

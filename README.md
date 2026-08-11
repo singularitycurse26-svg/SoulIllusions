@@ -57,6 +57,38 @@ Complete book writing, storage, and audiobook platform:
 - **Export**: TXT, HTML, JSON formats
 - **Character & World Building**: Track characters, locations, items, and world elements
 
+### 11. AI Movie & TV Analyzer Engine (NEW)
+AI-powered engine that sits on top of the video maker platform:
+- **Multi-Source Analysis**: Fetch and analyze movies/TV from YouTube, Facebook, or text descriptions
+- **Deep Analysis**: Extracts plot structure, characters, world design, visual style, themes, tone, key scenes, plot twists
+- **Movie Combination**: Dissect multiple movies and combine elements into new stories with unique plot twists
+- **Game Adaptation**: Extracts world design for game transfer — suggested genre, player character, missions, locations, items
+- **Video Adaptation**: Generates visual prompts for characters, scenes, and mood boards
+- **Pipeline Integration**: Feeds analysis data to text-to-video and text-to-game for better quality
+- **SQLite Storage**: All analyzed movies and combinations stored in movies.db
+- **API Endpoints**: Full REST API at /api/movies/*
+
+### 12. JARVIS In-Game Control System (NEW)
+Voice and text control system embedded in all games:
+- **Cellphone UI**: Small phone icon in bottom right corner — click to open JARVIS interface
+- **Voice Control**: Speech recognition for hands-free game control
+- **Text Control**: Text tab for typing commands to JARVIS
+- **Menu Navigation**: Start game, open settings, pause, resume, restart, quit
+- **Movement Control**: Go left/right/up/down, jump, sprint, dodge, crouch
+- **Action Control**: Attack, interact, open inventory, open map, save game
+- **Character Commands**: Tell character to do things — "go to", "find item", "talk to", "look around"
+- **Game-Specific Commands**: Games can register custom JARVIS commands
+- **Auto-Injected**: JARVIS is automatically injected into all generated games
+- **Developer API**: Games listen for `jarvis-command` events and can register via `jarvisRegisterCommand()`
+
+### 13. Lock & Key Game (NEW)
+First game with full JARVIS integration, based on the TV series:
+- **Adventure RPG**: Explore Keyhouse, find 3 magical keys, unlock the main door to escape
+- **NPCs**: Talk to Bode and Kinsey for clues
+- **Enemies**: Shadow enemies that damage the player
+- **Items**: Ghost Key, Matchstick Key, Head Key, Health Potion
+- **Full JARVIS Support**: Voice/text control for all game functions
+
 ## Quick Start
 
 ```bash
