@@ -64,6 +64,18 @@ canvas { display:block; }
 .la-item { padding:10px 16px; color:#fff; cursor:pointer; border-radius:6px; font-size:12px; transition:all 0.2s; }
 .la-item:hover { background:#00ffcc; color:#000; }
 .la-item.active { background:#0f3460; border-left:3px solid #00ffcc; }
+#introScreen { position:fixed; top:0; left:0; width:100%; height:100%; background:linear-gradient(180deg,#0a0a15,#1a1a2e); display:none; flex-direction:column; align-items:center; justify-content:center; z-index:350; }
+#introText { color:#00ffcc; font-size:18px; max-width:600px; text-align:center; line-height:1.8; opacity:0; transition:opacity 2s; margin-bottom:30px; text-shadow:0 0 15px rgba(0,255,204,0.3); }
+#introText.show { opacity:1; }
+#introSub { color:#888; font-size:14px; opacity:0; transition:opacity 2s; margin-bottom:20px; }
+#introSub.show { opacity:1; }
+#introBtn { padding:12px 40px; background:#0f3460; border:2px solid #e94560; border-radius:10px; color:#fff; cursor:pointer; font-size:16px; opacity:0; transition:opacity 1s; }
+#introBtn.show { opacity:1; }
+#introBtn:hover { background:#e94560; transform:scale(1.05); }
+#copyright { position:fixed; bottom:8px; right:12px; font-size:10px; color:#444; z-index:100; pointer-events:none; }
+#companionHud { position:fixed; bottom:50px; left:10px; background:rgba(10,10,21,0.9); border:1px solid #00ffcc; border-radius:8px; padding:8px; font-size:11px; color:#00ffcc; z-index:100; display:none; max-width:260px; }
+#companionHud .ch-title { font-weight:bold; color:#00ffcc; margin-bottom:4px; }
+#companionHud .ch-status { color:#888; font-size:10px; }
 </style>
 </head>
 <body>
@@ -75,16 +87,19 @@ canvas { display:block; }
   </div>
 </div>
 <canvas id="minimap" width="180" height="180"></canvas>
-<div id="hudPanel"><div>WASD/Arrows or Mouse: Move | E or Left Click: Interact | Right Click: Game Menu</div><div>V: Vehicle | B: Property | H: Hack | P: Phone | F: Fast Travel | C: Cloud Nybus</div><div id="walletDisplay" style="color:#ffcc00;font-size:11px;margin-top:4px;">Wallet Bounty: 0 INC (public)</div></div>
+<div id="hudPanel"><div>WASD/Arrows or Mouse: Move | E or Left Click: Interact | Right Click: Game Menu</div><div>V: Vehicle | B: Property | H: Hack | P: Phone | F: Fast Travel | C: Cloud Nybus | T: Talk to Rusty</div><div id="walletDisplay" style="color:#ffcc00;font-size:11px;margin-top:4px;">Wallet Bounty: 0 INC (public)</div></div>
 <div id="vehicleHud">Vehicle: None (Press V to summon)</div>
 <div id="interactionPrompt">Press E to interact</div>
 <div id="dialogueBox"><div id="dialogueTitle">Title</div><div id="dialogueText">Text</div><button id="dialogueClose" onclick="closeDialogue()">Close</button></div>
 <div id="blackoutOverlay"></div><div id="blackoutText">BLACKOUT</div>
 <div id="arrestScreen"><div id="arrestText">CAUGHT BY ENFORCEMENT ROBOT!</div><div style="color:#888;margin-bottom:20px;font-size:14px;" id="arrestDetail">You lost time and must restart the day.</div><button id="arrestBtn" onclick="restartDay()">Restart Day</button></div>
 <div id="overlayUI"><div class="overlay-header"><span id="overlayTitle">Title</span><button class="close-btn" onclick="closeOverlay()">X</button></div><div class="overlay-content" id="overlayContent"></div></div>
-<div id="menuScreen"><div id="menuTitle">MEGA CITY</div><div id="menuSub">A 60-Mile Open World | Time is Life | Incentives Inc.</div><button class="menuBtn" onclick="startGame()">Enter the City</button><button class="menuBtn" onclick="showAbout()">About</button></div>
+<div id="menuScreen"><div id="menuTitle">SoulIllusions</div><div id="menuSub">An Incentives Inc. Production | Time is Life | Mega City Open World</div><button class="menuBtn" onclick="startGame()">Enter the City</button><button class="menuBtn" onclick="showAbout()">About</button></div>
+<div id="introScreen"><div id="introText"></div><div id="introSub"></div><button id="introBtn" onclick="wakeUp()">Get Out of Bed</button></div>
+<div id="companionHud"><div class="ch-title">Rusty (Companion Robot)</div><div class="ch-status" id="companionStatus">Following you</div></div>
+<div id="copyright">SoulIllusions (c) Incentives Inc. - An AI Corporation Production</div>
 <div id="commandBar"><input id="commandInput" type="text" placeholder="Tell your character what to do... (e.g. 'go to bank', 'take loan', 'summon vehicle', 'call time portal')" /><button id="commandSend" onclick="processCommand()">Send</button></div>
-<div id="contextMenu"><div class="ctx-item" onclick="openOverlay('phone');closeContextMenu()">Phone</div><div class="ctx-item" onclick="openOverlay('fasttravel');closeContextMenu()">Fast Travel</div><div class="ctx-item" onclick="openOverlay('hyperloop');closeContextMenu()">Hyperloop</div><div class="ctx-sep"></div><div class="ctx-item" onclick="showWallet();closeContextMenu()">Wallet & Loans</div><div class="ctx-item" onclick="showInventory();closeContextMenu()">Items & Inventory</div><div class="ctx-item" onclick="openOverlay('property');closeContextMenu()">Properties</div><div class="ctx-sep"></div><div class="ctx-item" onclick="openLeftActionMenu();closeContextMenu()">Customize Left Click</div><div class="ctx-item" onclick="summonAnyVehicle();closeContextMenu()">Summon Any Vehicle</div><div class="ctx-sep"></div><div class="ctx-item" onclick="closeContextMenu()" style="color:#888;">Close Menu</div></div>
+<div id="contextMenu"><div class="ctx-item" onclick="openOverlay('phone');closeContextMenu()">Phone</div><div class="ctx-item" onclick="openOverlay('fasttravel');closeContextMenu()">Fast Travel</div><div class="ctx-item" onclick="openOverlay('hyperloop');closeContextMenu()">Hyperloop</div><div class="ctx-sep"></div><div class="ctx-item" onclick="showWallet();closeContextMenu()">Wallet & Loans</div><div class="ctx-item" onclick="showInventory();closeContextMenu()">Items & Inventory</div><div class="ctx-item" onclick="openOverlay('property');closeContextMenu()">Properties</div><div class="ctx-sep"></div><div class="ctx-item" onclick="openLeftActionMenu();closeContextMenu()">Customize Left Click</div><div class="ctx-item" onclick="summonAnyVehicle();closeContextMenu()">Summon Any Vehicle</div><div class="ctx-sep"></div><div class="ctx-item" onclick="talkToCompanion();closeContextMenu()">Talk to Rusty (Companion)</div><div class="ctx-sep"></div><div class="ctx-item" onclick="closeContextMenu()" style="color:#888;">Close Menu</div></div>
 <div id="leftActionMenu"><div style="color:#00ffcc;font-size:12px;padding:6px 16px 8px;">Set Left Click Action:</div><div class="la-item active" onclick="setLeftAction('interact')">Interact (default)</div><div class="la-item" onclick="setLeftAction('timeportal')">Call Time Portal</div><div class="la-item" onclick="setLeftAction('summonvehicle')">Summon Vehicle</div><div class="la-item" onclick="setLeftAction('cloudnybus')">Summon Cloud Nybus</div><div class="la-item" onclick="setLeftAction('hack')">Hack Nearby</div><div class="la-item" onclick="setLeftAction('phone')">Open Phone</div><div class="la-item" onclick="setLeftAction('fasttravel')">Fast Travel</div></div>
 <div id="megaPayout"></div>
 <script>
@@ -92,7 +107,7 @@ var canvas=document.getElementById('game'),ctx=canvas.getContext('2d');
 var miniCanvas=document.getElementById('minimap'),miniCtx=miniCanvas.getContext('2d');
 var W=window.innerWidth,H=window.innerHeight;canvas.width=W;canvas.height=H;
 var CITY_SIZE=8000;
-var game={running:false,paused:false,player:{x:3200,y:3200,speed:3,health:100,angle:0,onVehicle:null,onCloud:false},camera:{x:3200,y:3200},time:86400,crypto:0,day:1,hour:8,minute:0,blackout:false,blackoutTimer:0,blackoutReboot:false,blackoutRebootTimer:0,nextBlackout:14400,robots:[],npcs:[],vehicles:[],properties:[],ownedProperties:[],currentLocation:'Downtown',schoolEnrolled:{high:false,college:false},collegeMajor:null,grades:{high:{},college:{}},businesses:[],cryptoOwned:null,hackingLevel:1,notoriety:0,keys:0,inventory:[],contacts:[],portals:[],hyperloopStations:[],phoneMessages:[],missionNotifications:[],skyCityAccess:false,flyingVehicles:[],cloudNybus:null,createdKeys:[],loans:[],loanLimit:10,loanTier:1,loansPaidOff:0,jobOffers:[],walletBounty:0,leftAction:'interact',mouseTarget:null,mouseDown:false};
+var game={running:false,paused:false,player:{x:3200,y:3200,speed:3,health:100,angle:0,onVehicle:null,onCloud:false},camera:{x:3200,y:3200},time:86400,crypto:0,day:1,hour:8,minute:0,blackout:false,blackoutTimer:0,blackoutReboot:false,blackoutRebootTimer:0,nextBlackout:14400,robots:[],npcs:[],vehicles:[],properties:[],ownedProperties:[],currentLocation:'Downtown',schoolEnrolled:{high:false,college:false},collegeMajor:null,grades:{high:{},college:{}},businesses:[],cryptoOwned:null,hackingLevel:1,notoriety:0,keys:0,inventory:[],contacts:[],portals:[],hyperloopStations:[],phoneMessages:[],missionNotifications:[],skyCityAccess:false,flyingVehicles:[],cloudNybus:null,createdKeys:[],loans:[],loanLimit:10,loanTier:1,loansPaidOff:0,jobOffers:[],walletBounty:0,leftAction:'interact',mouseTarget:null,mouseDown:false,companion:null,introActive:false};
 var DISTRICTS=[
 {name:'Keyhouse',x:200,y:200,w:600,h:600,color:'#1a2a1a'},{name:'Downtown',x:2800,y:2800,w:2400,h:2400,color:'#1a1a2e'},
 {name:'High School',x:1000,y:3200,w:800,h:600,color:'#2a1a1a'},{name:'College',x:1000,y:4200,w:1000,h:800,color:'#1a1a2a'},
@@ -130,7 +145,7 @@ var PROPERTIES=[
 {id:'p7',name:'Tech Store',price:6000,income:80,type:'commercial'},{id:'p8',name:'Hover Park Garage',price:4000,income:60,type:'commercial'}
 ];
 var keys={};
-document.addEventListener('keydown',function(e){keys[e.key.toLowerCase()]=true;if(e.key==='e'||e.key==='E')tryInteract();if(e.key==='v'||e.key==='V')toggleVehicle();if(e.key==='b'||e.key==='B')openOverlay('property');if(e.key==='h'||e.key==='H')tryHack();if(e.key==='p'||e.key==='P')openOverlay('phone');if(e.key==='f'||e.key==='F')openOverlay('fasttravel');if(e.key==='c'||e.key==='C')summonCloudNybus();if(e.key==='Escape')togglePause();});
+document.addEventListener('keydown',function(e){keys[e.key.toLowerCase()]=true;if(e.key==='e'||e.key==='E')tryInteract();if(e.key==='v'||e.key==='V')toggleVehicle();if(e.key==='b'||e.key==='B')openOverlay('property');if(e.key==='h'||e.key==='H')tryHack();if(e.key==='p'||e.key==='P')openOverlay('phone');if(e.key==='f'||e.key==='F')openOverlay('fasttravel');if(e.key==='c'||e.key==='C')summonCloudNybus();if(e.key==='t'||e.key==='T')talkToCompanion();if(e.key==='Escape')togglePause();});
 document.addEventListener('keyup',function(e){keys[e.key.toLowerCase()]=false;});
 document.addEventListener('mousemove',function(e){game.mouseTarget={x:e.clientX,y:e.clientY};if(game.mouseDown&&game.running&&!game.paused){var dx=e.clientX-W/2,dy=e.clientY-H/2;var l=Math.sqrt(dx*dx+dy*dy);if(l>5){game.player.angle=Math.atan2(dy,dx)}}});
 canvas.addEventListener('mousedown',function(e){if(!game.running||game.paused)return;if(e.button===0){game.mouseDown=true;handleLeftClick(e)}else if(e.button===2){handleRightClick(e);e.preventDefault()}});
@@ -149,7 +164,7 @@ if(game.mouseDown&&game.mouseTarget&&!dx&&!dy){var mdx=game.mouseTarget.x-W/2,md
 if(dx||dy){var l=Math.sqrt(dx*dx+dy*dy);dx=dx/l*speed;dy=dy/l*speed;p.x+=dx;p.y+=dy;p.angle=Math.atan2(dy,dx);p.x=Math.max(0,Math.min(CITY_SIZE,p.x));p.y=Math.max(0,Math.min(CITY_SIZE,p.y))}
 if(game.cloudNybus&&p.onCloud){game.cloudNybus.x=p.x;game.cloudNybus.y=p.y-10}
 game.camera.x=p.x-W/2;game.camera.y=p.y-H/2;game.minute+=0.1;if(game.minute>=60){game.minute=0;game.hour++}if(game.hour>=24){game.hour=0;game.day++;game.time+=3600;dailyIncome()}
-game.time-=0.5;if(game.time<=0){gameOver();return}updateLocation();updateNPCs();updateRobots();updateBlackout();checkNearby();checkNFCContacts();updatePortals();updateMissionNotifications();updateUI()}
+game.time-=0.5;if(game.time<=0){gameOver();return}updateLocation();updateNPCs();updateRobots();updateBlackout();checkNearby();checkNFCContacts();updatePortals();updateMissionNotifications();updateCompanion();updateUI()}
 function dailyIncome(){game.ownedProperties.forEach(function(p){game.crypto+=p.income})}
 function updateLocation(){for(var i=0;i<DISTRICTS.length;i++){var d=DISTRICTS[i];if(game.player.x>=d.x&&game.player.x<=d.x+d.w&&game.player.y>=d.y&&game.player.y<=d.y+d.h){game.currentLocation=d.name;return}}game.currentLocation='Mega City Streets'}
 function updateNPCs(){game.npcs.forEach(function(n){var dx=n.targetX-n.x,dy=n.targetY-n.y,d=Math.sqrt(dx*dx+dy*dy);if(d<10){var a=Math.random()*Math.PI*2,r=100+Math.random()*300;n.targetX=Math.max(0,Math.min(CITY_SIZE,n.x+Math.cos(a)*r));n.targetY=Math.max(0,Math.min(CITY_SIZE,n.y+Math.sin(a)*r));if(Math.random()<0.3)n.task=NPC_TASKS[Math.floor(Math.random()*NPC_TASKS.length)]}else{n.x+=dx/d*n.speed;n.y+=dy/d*n.speed}})}
@@ -173,6 +188,7 @@ game.robots.forEach(function(r){var sx=r.x-c.x,sy=r.y-c.y;if(sx<-30||sy<-30||sx>
 game.vehicles.forEach(function(v){if(v===game.player.onVehicle)return;var sx=v.x-c.x,sy=v.y-c.y;if(sx<-30||sy<-30||sx>W+30||sy>H+30)return;ctx.fillStyle=v.type.color;ctx.fillRect(sx-v.type.size/2,sy-v.type.size/2,v.type.size,v.type.size/2)});
 if(game.portals.length>0){game.portals.forEach(function(p){var sx=p.x-c.x,sy=p.y-c.y;if(sx<-50||sy<-50||sx>W+50||sy>H+50)return;ctx.fillStyle='rgba(168,85,247,0.3)';ctx.beginPath();ctx.arc(sx,sy,25,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#a855f7';ctx.lineWidth=3;ctx.beginPath();ctx.arc(sx,sy,25,0,Math.PI*2);ctx.stroke();ctx.fillStyle='#a855f7';ctx.font='bold 10px Segoe UI';ctx.fillText('PORTAL',sx-15,sy-30)})}
 if(game.cloudNybus){var csx=game.cloudNybus.x-c.x,csy=game.cloudNybus.y-c.y;ctx.fillStyle='rgba(255,255,255,0.8)';ctx.beginPath();ctx.arc(csx,csy-5,20,0,Math.PI*2);ctx.fill();ctx.fillStyle='rgba(255,255,255,0.6)';ctx.beginPath();ctx.arc(csx-15,csy,15,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.arc(csx+15,csy,15,0,Math.PI*2);ctx.fill();ctx.fillStyle='#ffcc00';ctx.font='8px Segoe UI';ctx.fillText('Nybus',csx-12,csy+20)}
+if(game.companion){var rsx=game.companion.x-c.x,rsy=game.companion.y-c.y;ctx.fillStyle='#888';ctx.fillRect(rsx-8,rsy-6,16,12);ctx.fillStyle='#666';ctx.fillRect(rsx-6,rsy-4,12,8);ctx.fillStyle=game.companion.onJob?'#ff6600':'#00ffcc';ctx.beginPath();ctx.arc(rsx-4,rsy-2,2,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.arc(rsx+4,rsy-2,2,0,Math.PI*2);ctx.fill();ctx.strokeStyle='rgba(0,255,204,0.3)';ctx.lineWidth=1;ctx.beginPath();ctx.arc(rsx,rsy,20,0,Math.PI*2);ctx.stroke();if(rsx>-50&&rsy>-50&&rsx<W+50&&rsy<H+50){ctx.fillStyle='#00ffcc';ctx.font='8px Segoe UI';ctx.fillText('Rusty',rsx-10,rsy-10)}}
 var psx=game.player.x-c.x,psy=game.player.y-c.y;if(game.player.onVehicle){var v=game.player.onVehicle;ctx.fillStyle=v.type.color;ctx.fillRect(psx-v.type.size/2,psy-v.type.size/3,v.type.size,v.type.size*0.66)}
 ctx.fillStyle='#e94560';ctx.beginPath();ctx.arc(psx,psy,8,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.stroke();ctx.strokeStyle='#00ffcc';ctx.beginPath();ctx.moveTo(psx,psy);ctx.lineTo(psx+Math.cos(game.player.angle)*15,psy+Math.sin(game.player.angle)*15);ctx.stroke();renderMinimap()}
 function renderMinimap(){miniCtx.fillStyle='#0a0a15';miniCtx.fillRect(0,0,180,180);var s=180/CITY_SIZE;DISTRICTS.forEach(function(d){miniCtx.fillStyle=d.color;miniCtx.fillRect(d.x*s,d.y*s,d.w*s,d.h*s)});miniCtx.fillStyle='#e94560';BUILDINGS.forEach(function(b){miniCtx.fillRect(b.x*s-1,b.y*s-1,3,3)});miniCtx.fillStyle='rgba(100,200,100,0.5)';game.npcs.forEach(function(n){miniCtx.fillRect(n.x*s,n.y*s,1,1)});miniCtx.fillStyle='#ff3333';game.robots.forEach(function(r){miniCtx.fillRect(r.x*s-1,r.y*s-1,2,2)});miniCtx.fillStyle='#00ffcc';miniCtx.fillRect(game.player.x*s-2,game.player.y*s-2,4,4)}
@@ -189,7 +205,7 @@ function openBar_enter(){openBank()}
 function showDialogue(title,text){var box=document.getElementById('dialogueBox');document.getElementById('dialogueTitle').textContent=title;document.getElementById('dialogueText').textContent=text;box.style.display='block'}
 function closeDialogue(){document.getElementById('dialogueBox').style.display='none'}
 function togglePause(){game.paused=!game.paused;if(game.paused)showDialogue('Paused','Game paused. Press ESC to resume.');else closeDialogue()}
-function showAbout(){showDialogue('Mega City','A 60-mile open world city. Time is your life - earn it by working, learning, and completing missions. Incentives Inc. is the crypto currency. Survive 15-minute blackouts with escape portals, explore Keyhouse and forge keys, attend school with futuristic electives, gamble at the casino, hack the Central Brain, buy property, create businesses, ride hover vehicles or flying cars, summon the Cloud Nybus, take the hyperloop, use your phone for contacts and missions, visit Sky City for the wealthy (pays 10x with rare 100Mx mega payouts!), take out loans at the bank (10->20->40->80 tier limits), get hired by NPCs for jobs (down below gets rare 50Mx mega payouts!), summon any vehicle, call time portals, and use the command bar at the bottom to tell your character what to do. Mouse: hold left to steer, left click for customizable action, right click for game menu. Use JARVIS for voice/text control and agent chat.')}
+function showAbout(){showDialogue('SoulIllusions','SoulIllusions - An Incentives Inc. Production. Copyright (c) Incentives Inc. - An AI Corporation.\n\nA 60-mile open world city. Time is your life - earn it by working, learning, and completing missions. Incentives Inc. is the crypto currency. You start in bed like in the movie In Time. Your companion robot Rusty follows you everywhere - he can fly, fight robots, do jobs, file at the courthouse, go to Sky City, hack systems, and earn time and crypto for you. Press T to talk to Rusty. Survive 15-minute blackouts with escape portals, explore Keyhouse and forge keys, attend school, gamble at the casino, hack the Central Brain, buy property, ride hover vehicles, summon the Cloud Nybus, take the hyperloop, visit Sky City (pays 10x with rare 100Mx mega payouts!), take out loans, get hired by NPCs (down below gets rare 50Mx mega payouts!), summon any vehicle, call time portals, and use the command bar at the bottom. Mouse: hold left to steer, left click for customizable action, right click for game menu. Use JARVIS for voice/text control and agent chat.')}
 
 // --- Keyhouse ---
 function enterKeyhouse(){
@@ -441,7 +457,7 @@ function openLeftActionMenu(){var la=document.getElementById('leftActionMenu');l
 function setLeftAction(action){game.leftAction=action;var items=document.querySelectorAll('.la-item');items.forEach(function(it){it.classList.remove('active')});event.target.classList.add('active');document.getElementById('leftActionMenu').style.display='none';showDialogue('Left Click Set','Left click action: '+action+'. Right-click to change anytime.');if(window.jarvisSpeak)jarvisSpeak('Left click set to '+action)}
 
 // --- Command Bar ---
-function processCommand(){var input=document.getElementById('commandInput');var cmd=input.value.trim().toLowerCase();input.value='';if(!cmd)return;var responses={};if(cmd.indexOf('go to bank')>=0){var bank=BUILDINGS.find(function(b){return b.type==='bank'});if(bank){game.player.x=bank.x;game.player.y=bank.y;openBank()}return'Going to the bank'}if(cmd.indexOf('go to school')>=0){openOverlay('school','high');return'Opening school'}if(cmd.indexOf('go to casino')>=0){openOverlay('casino');return'Opening casino'}if(cmd.indexOf('go to sky city')>=0){enterSkyCity();return'Going to Sky City'}if(cmd.indexOf('take loan')>=0){takeLoan();return'Opening loan application'}if(cmd.indexOf('pay loan')>=0){payLoan();return'Opening loan payment'}if(cmd.indexOf('summon vehicle')>=0){summonAnyVehicle();return'Summoning a vehicle'}if(cmd.indexOf('summon cloud')>=0){summonCloudNybus();return'Summoning Cloud Nybus'}if(cmd.indexOf('call time portal')>=0||cmd.indexOf('time portal')>=0){callTimePortal();return'Calling time portal'}if(cmd.indexOf('open phone')>=0||cmd.indexOf('phone')>=0){openOverlay('phone');return'Opening phone'}if(cmd.indexOf('fast travel')>=0){openOverlay('fasttravel');return'Opening fast travel'}if(cmd.indexOf('hyperloop')>=0){openOverlay('hyperloop');return'Opening hyperloop'}if(cmd.indexOf('hack')>=0){tryHack();return'Attempting hack'}if(cmd.indexOf('check wallet')>=0||cmd.indexOf('wallet')>=0){showWallet();return'Showing wallet'}if(cmd.indexOf('check inventory')>=0||cmd.indexOf('inventory')>=0){showInventory();return'Showing inventory'}if(cmd.indexOf('check loans')>=0||cmd.indexOf('loans')>=0){viewLoans();return'Showing loans'}if(cmd.indexOf('check time')>=0){var h=Math.floor(game.time/3600),m=Math.floor((game.time%3600)/60);return'You have '+h+' hours and '+m+' minutes of life remaining'}if(cmd.indexOf('check crypto')>=0){return'You have '+game.crypto.toFixed(2)+' Incentives Inc. crypto'}if(cmd.indexOf('help')>=0){showDialogue('Commands','Commands: go to bank, go to school, go to casino, go to sky city, take loan, pay loan, summon vehicle, summon cloud, call time portal, open phone, fast travel, hyperloop, hack, check wallet, check inventory, check loans, check time, check crypto');return'Showing help'}if(window.jarvisSendText){window.jarvisSendText(cmd);return'Sent to JARVIS: '+cmd}showDialogue('Unknown Command','Type "help" for available commands.');return'Unknown command: '+cmd}
+function processCommand(){var input=document.getElementById('commandInput');var cmd=input.value.trim().toLowerCase();input.value='';if(!cmd)return;var responses={};if(cmd.indexOf('go to bank')>=0){var bank=BUILDINGS.find(function(b){return b.type==='bank'});if(bank){game.player.x=bank.x;game.player.y=bank.y;openBank()}return'Going to the bank'}if(cmd.indexOf('go to school')>=0){openOverlay('school','high');return'Opening school'}if(cmd.indexOf('go to casino')>=0){openOverlay('casino');return'Opening casino'}if(cmd.indexOf('go to sky city')>=0){enterSkyCity();return'Going to Sky City'}if(cmd.indexOf('take loan')>=0){takeLoan();return'Opening loan application'}if(cmd.indexOf('pay loan')>=0){payLoan();return'Opening loan payment'}if(cmd.indexOf('summon vehicle')>=0){summonAnyVehicle();return'Summoning a vehicle'}if(cmd.indexOf('summon cloud')>=0){summonCloudNybus();return'Summoning Cloud Nybus'}if(cmd.indexOf('call time portal')>=0||cmd.indexOf('time portal')>=0){callTimePortal();return'Calling time portal'}if(cmd.indexOf('open phone')>=0||cmd.indexOf('phone')>=0){openOverlay('phone');return'Opening phone'}if(cmd.indexOf('fast travel')>=0){openOverlay('fasttravel');return'Opening fast travel'}if(cmd.indexOf('hyperloop')>=0){openOverlay('hyperloop');return'Opening hyperloop'}if(cmd.indexOf('talk to rusty')>=0||cmd.indexOf('rusty')>=0){talkToCompanion();return'Talking to Rusty'}if(cmd.indexOf('dispatch rusty')>=0||cmd.indexOf('rusty job')>=0){dispatchCompanionJob();return'Dispatching Rusty'}if(cmd.indexOf('rusty courthouse')>=0){dispatchCompanionCourthouse();return'Sending Rusty to courthouse'}if(cmd.indexOf('rusty sky city')>=0){dispatchCompanionSkyCity();return'Sending Rusty to Sky City'}if(cmd.indexOf('rusty hack')>=0){dispatchCompanionHack();return'Sending Rusty to hack'}if(cmd.indexOf('hack')>=0){tryHack();return'Attempting hack'}if(cmd.indexOf('check wallet')>=0||cmd.indexOf('wallet')>=0){showWallet();return'Showing wallet'}if(cmd.indexOf('check inventory')>=0||cmd.indexOf('inventory')>=0){showInventory();return'Showing inventory'}if(cmd.indexOf('check loans')>=0||cmd.indexOf('loans')>=0){viewLoans();return'Showing loans'}if(cmd.indexOf('check time')>=0){var h=Math.floor(game.time/3600),m=Math.floor((game.time%3600)/60);return'You have '+h+' hours and '+m+' minutes of life remaining'}if(cmd.indexOf('check crypto')>=0){return'You have '+game.crypto.toFixed(2)+' Incentives Inc. crypto'}if(cmd.indexOf('help')>=0){showDialogue('Commands','Commands: go to bank, go to school, go to casino, go to sky city, take loan, pay loan, summon vehicle, summon cloud, call time portal, open phone, fast travel, hyperloop, hack, check wallet, check inventory, check loans, check time, check crypto, talk to rusty, dispatch rusty, rusty courthouse, rusty sky city, rusty hack, rusty status');return'Showing help'}if(window.jarvisSendText){window.jarvisSendText(cmd);return'Sent to JARVIS: '+cmd}showDialogue('Unknown Command','Type "help" for available commands.');return'Unknown command: '+cmd}
 
 // --- Summon Any Vehicle ---
 function summonAnyVehicle(){var list=VEHICLE_TYPES.map(function(v,i){return (i+1)+'. '+v.name+' (Speed: '+v.speed+', Cost: '+v.cost+' INC)'+(v.flying?' [FLYING]':'')}).join('\n');var idx=prompt('Summon any vehicle:\n'+list+'\n\nEnter number (1-'+VEHICLE_TYPES.length+'):');var i=parseInt(idx)-1;if(!VEHICLE_TYPES[i]){showDialogue('Invalid','No such vehicle.');return}var v=VEHICLE_TYPES[i];if(game.crypto<v.cost){showDialogue('Not enough INC','Need '+v.cost+' INC for a '+v.name+'.');return}game.crypto-=v.cost;game.vehicles.push({id:'v'+game.vehicles.length,type:v,x:game.player.x,y:game.player.y+30,owned:true,parked:true});game.player.onVehicle=game.vehicles[game.vehicles.length-1];showDialogue('Vehicle Summoned!','You summoned a '+v.name+'! You are now riding it. Press V to dismount.');if(window.jarvisSpeak)jarvisSpeak(v.name+' summoned and mounted!')}
@@ -452,6 +468,120 @@ function callTimePortal(){if(game.crypto<100){showDialogue('Not enough INC','Cal
 // --- Wallet & Inventory Display ---
 function showWallet(){var h='Wallet Bounty: '+game.walletBounty+' INC (public)\n';h+='Total INC: '+game.crypto.toFixed(2)+'\n';h+='Loans: '+game.loans.length+'/'+game.loanLimit+' (Tier: '+game.loanTier+', Paid off: '+game.loansPaidOff+')\n';if(game.loans.length>0){h+='\nActive Loans:\n';game.loans.forEach(function(l,i){h+='  Loan '+(i+1)+': Borrowed '+l.principal+' INC | Owed: '+(l.total-l.paid)+' INC\n'})}h+='\nTime: '+Math.floor(game.time/3600)+'h '+Math.floor((game.time%3600)/60)+'m\n';h+='Notoriety: '+game.notoriety+'\n';h+='Day: '+game.day;showDialogue('Wallet & Loans',h)}
 function showInventory(){var h='Items: '+(game.inventory.length?game.inventory.join(', '):'empty')+'\n';h+='Keys: '+game.keys+'\n';if(game.createdKeys.length>0){h+='Created Keys: '+game.createdKeys.join(', ')+'\n'}h+='Hacking Level: '+game.hackingLevel+'\n';h+='Properties: '+game.ownedProperties.length+'\n';h+='Businesses: '+game.businesses.length+'\n';h+='Contacts: '+game.contacts.length+'\n';h+='Vehicles: '+game.vehicles.filter(function(v){return v.owned}).length;showDialogue('Inventory',h)}
+
+// --- Intro Sequence (In Time Movie) ---
+function startIntro(){
+game.introActive=true;
+document.getElementById('menuScreen').style.display='none';
+var intro=document.getElementById('introScreen');
+var txt=document.getElementById('introText');
+var sub=document.getElementById('introSub');
+var btn=document.getElementById('introBtn');
+intro.style.display='flex';
+txt.classList.remove('show');sub.classList.remove('show');btn.classList.remove('show');
+txt.textContent='';
+setTimeout(function(){txt.textContent='"My name is Will Salas. I am 28 years old. I have been timing out for a while now. But I am not done yet. I have got time on my arm and I am going to use it."';txt.classList.add('show')},500);
+setTimeout(function(){sub.textContent='You wake up in bed. The green glow of your forearm clock reads 24:00:00. Another day in the ghetto. Time is the only currency that matters.';sub.classList.add('show')},3500);
+setTimeout(function(){btn.classList.add('show')},6000);
+if(window.jarvisSpeak)jarvisSpeak('My name is Will Salas. I am 28 years old. I have been timing out for a while now. But I am not done yet.');
+}
+function wakeUp(){
+document.getElementById('introScreen').style.display='none';
+game.introActive=false;
+game.running=true;game.paused=false;
+initNPCs();initRobots();initVehicles();
+initCompanion();
+if(window.jarvisSetContext)jarvisSetContext({location:game.currentLocation,day:game.day,time:game.time});
+if(window.jarvisAddTask){
+jarvisAddTask('Explore Mega City','Walk around and discover districts','objective');
+jarvisAddTask('Visit Keyhouse','Explore the Lock & Key manor','objective');
+jarvisAddTask('Enroll in school','Go to high school or college to earn time','objective');
+jarvisAddTask('Earn Incentives Inc.','Work, gamble, or trade for INC crypto','objective');
+jarvisAddTask('Talk to Rusty','Press T to talk to your companion robot. He can do jobs for you!','objective');
+jarvisAddTask('Buy property','Own buildings for passive income','side');
+jarvisAddTask('Try hover vehicles','Visit the Hover Park for fast travel','side');
+jarvisAddTask('Survive a blackout','Avoid robots during blackouts (15 min). Portals can help!','challenge');
+jarvisAddTask('Hack the Central Brain','Break into the city computer (need hacking 3)','challenge');
+jarvisAddTask('Create a business','File at the courthouse','side');
+jarvisAddTask('Talk to NPCs','Meet the people of Mega City. Walk near them to auto-add contacts!','side');
+jarvisAddTask('Open your phone','Press P to access phone, contacts, messages, missions','side');
+jarvisAddTask('Try fast travel','Press F to fast travel or take the Hyperloop','side');
+jarvisAddTask('Create a key','Visit the Cave or Cliff Tunnel to forge magical keys','side');
+jarvisAddTask('Reach Sky City','Get 10,000 INC or 20 hours to buy Sky City access','challenge');
+jarvisAddTask('Summon Cloud Nybus','Unlock the flying cloud for fast travel','challenge');
+jarvisAddTask('Take futuristic electives','Robotics, Time Portal, Vehicle Creation, and more at school','side');
+jarvisAddTask('Take out a loan','Visit the Central Bank to borrow INC. Pay back to unlock higher loan tiers!','side');
+jarvisAddTask('Build your wallet','NPCs offer better jobs when your public wallet shows more INC','side');
+jarvisAddTask('Try mouse controls','Hold left click to steer, right click for game menu, use command bar at bottom','side');
+}
+registerJarvisCommands();
+loop();
+showDialogue('Rusty Activated!','An old robot sitting in the corner powers on. Its eyes glow cyan.\n\n"Hello! I am Rusty. I have been waiting for someone to wake up. I am old but I still work. I will follow you everywhere. I can fly, fight robots for you, do jobs, file paperwork at the courthouse, earn time and crypto, and help with anything you need. Press T to talk to me anytime!"\n\nRusty is now your companion.');
+if(window.jarvisSpeak)jarvisSpeak('Rusty companion robot activated! Press T to talk to me anytime!');
+}
+
+// --- Companion Robot (Rusty) ---
+function initCompanion(){
+game.companion={x:game.player.x+30,y:game.player.y-20,speed:4,onJob:false,jobType:null,jobTimer:0,jobReward:0,jobTimeReward:0,helping:false,dialogue:["Beep boop! I am Rusty. I am old but I still work!","I can fly anywhere in the city!","If robots chase you, I will try to distract them!","I can do jobs for you while you do other things!","I can file paperwork at the courthouse for you!","I can earn time and crypto while you are busy!","I have been in this city since before the blackouts started.","My circuits are old but my heart is warm... if I had a heart.","I can go to Sky City for you too!","Press T anytime to talk to me!"]};
+document.getElementById('companionHud').style.display='block';
+}
+function updateCompanion(){
+if(!game.companion)return;
+var c=game.companion;
+if(c.onJob){c.jobTimer--;if(c.jobTimer<=0){game.crypto+=c.jobReward;game.time+=c.jobTimeReward;if(c.jobCallback==='clearNotoriety'){game.notoriety=0;c.jobCallback=null}var msg='Rusty returned!'+(c.jobReward>0?' He earned '+c.jobReward+' INC and '+c.jobTimeReward+'s!':' He filed the paperwork and cleared your notoriety!');c.onJob=false;c.jobType=null;showDialogue('Rusty is Back!',msg);if(window.jarvisSpeak)jarvisSpeak(msg);addPhoneMessage('Rusty Returns',msg);c.x=game.player.x+30;c.y=game.player.y-20}return}
+var dx=game.player.x-c.x,dy=game.player.y-c.y,d=Math.sqrt(dx*dx+dy*dy);
+if(d>40){c.x+=dx/d*c.speed;c.y+=dy/d*c.speed}
+if(game.blackout){var closestRobot=null,cd=300;game.robots.forEach(function(r){if(r.chasing){var rd=Math.sqrt(Math.pow(r.x-game.player.x,2)+Math.pow(r.y-game.player.y,2));if(rd<cd){closestRobot=r;cd=rd}}});if(closestRobot){var rdx=closestRobot.x-c.x,rdy=closestRobot.y-c.y,rd=Math.sqrt(rdx*rdx+rdy*rdy);if(rd>10){c.x+=rdx/rd*c.speed*1.5;c.y+=rdy/rd*c.speed*1.5}if(rd<50){closestRobot.chasing=false;closestRobot.x+=Math.random()*100-50;closestRobot.y+=Math.random()*100-50;showDialogue('Rusty Helps!','Rusty flew at the robot and knocked it off course! The robot lost track of you!');if(window.jarvisSpeak)jarvisSpeak('Rusty distracted the robot! Run!')}}}
+var cs=document.getElementById('companionStatus');
+if(cs){if(c.onJob)cs.textContent='On job: '+c.jobType+' ('+Math.ceil(c.jobTimer/60)+'s left)';else if(game.blackout)cs.textContent='Helping with robots!';else cs.textContent='Following you'}
+}
+function talkToCompanion(){
+if(!game.companion){showDialogue('No Companion','Rusty is not here.');return}
+if(game.companion.onJob){showDialogue('Rusty','Rusty is away on a job: '+game.companion.jobType+'. He will be back soon!');return}
+var h='What should Rusty do?\n\n1. Chat\n2. Do a job (earn INC + time)\n3. File at courthouse\n4. Go to Sky City for a mission\n5. Hack nearby\n6. Status report';
+var c=prompt(h);
+if(c==='1'){var msg=game.companion.dialogue[Math.floor(Math.random()*game.companion.dialogue.length)];showDialogue('Rusty',msg);if(window.jarvisSpeak)jarvisSpeak('Rusty says: '+msg)}
+else if(c==='2'){dispatchCompanionJob()}
+else if(c==='3'){dispatchCompanionCourthouse()}
+else if(c==='4'){dispatchCompanionSkyCity()}
+else if(c==='5'){dispatchCompanionHack()}
+else if(c==='6'){var s='Rusty Status:\n';s+='On Job: '+(game.companion.onJob?'Yes - '+game.companion.jobType:'No')+'\n';s+='Your INC: '+game.crypto.toFixed(2)+'\n';s+='Your Time: '+Math.floor(game.time/3600)+'h '+Math.floor((game.time%3600)/60)+'m\n';s+='Location: '+game.currentLocation+'\n';s+='Day: '+game.day;showDialogue('Rusty Status',s)}
+}
+function dispatchCompanionJob(){
+if(game.companion.onJob){showDialogue('Rusty Busy','Rusty is already on a job!');return}
+var jobs=[{t:'Deliver packages across town',r:100,tm:600,time:120},{t:'Collect crypto debts',r:250,tm:0,time:300},{t:'Guard a shop overnight',r:150,tm:1200,time:180},{t:'Run errands for NPCs',r:80,tm:300,time:90},{t:'Repair hover vehicles',r:200,tm:600,time:240}];
+var job=jobs[Math.floor(Math.random()*jobs.length)];
+game.companion.onJob=true;game.companion.jobType=job.t;game.companion.jobTimer=job.time*60;game.companion.jobReward=job.r;game.companion.jobTimeReward=job.tm;
+showDialogue('Rusty Dispatched!','Rusty flew off to: '+job.t+'\nHe will return in '+job.time+' minutes with '+job.r+' INC and '+job.tm+'s!');
+if(window.jarvisSpeak)jarvisSpeak('Rusty dispatched for '+job.t+'. He will be back in '+job.time+' minutes!');
+addPhoneMessage('Rusty Dispatched','Rusty is doing: '+job.t);
+}
+function dispatchCompanionCourthouse(){
+if(game.companion.onJob){showDialogue('Rusty Busy','Rusty is already on a job!');return}
+if(game.notoriety<=0){showDialogue('Nothing to File','You have no notoriety to clear. Rusty has nothing to file.');return}
+game.companion.onJob=true;game.companion.jobType='Filing at Courthouse';game.companion.jobTimer=180;game.companion.jobReward=0;game.companion.jobTimeReward=0;game.companion.jobCallback='clearNotoriety';
+showDialogue('Rusty to Courthouse!','Rusty flew off to the courthouse to file paperwork for you! He will clear your notoriety in 3 minutes!');
+if(window.jarvisSpeak)jarvisSpeak('Rusty is filing at the courthouse for you!');
+addPhoneMessage('Rusty Dispatched','Rusty is filing paperwork at the courthouse');
+}
+function dispatchCompanionSkyCity(){
+if(game.companion.onJob){showDialogue('Rusty Busy','Rusty is already on a job!');return}
+if(!game.skyCityAccess){showDialogue('No Sky City Access','You do not have Sky City access yet. Rusty cannot go there either.');return}
+var missions=[{t:'Deliver crypto to a CEO',r:5000,tm:18000},{t:'Pick up luxury goods',r:3000,tm:12000},{t:'Negotiate a deal',r:6000,tm:0},{t:'Test a prototype',r:4000,tm:6000}];
+var m=missions[Math.floor(Math.random()*missions.length)];
+game.companion.onJob=true;game.companion.jobType='Sky City: '+m.t;game.companion.jobTimer=300;game.companion.jobReward=m.r;game.companion.jobTimeReward=m.tm;
+showDialogue('Rusty to Sky City!','Rusty flew up to Sky City for: '+m.t+'\nHe will return in 5 minutes with '+m.r+' INC and '+m.tm+'s!');
+if(window.jarvisSpeak)jarvisSpeak('Rusty dispatched to Sky City for '+m.t);
+addPhoneMessage('Rusty Dispatched','Rusty is in Sky City doing: '+m.t);
+}
+function dispatchCompanionHack(){
+if(game.companion.onJob){showDialogue('Rusty Busy','Rusty is already on a job!');return}
+if(game.hackingLevel<1){showDialogue('Cannot Hack','Rusty needs you to have at least hacking level 1.');return}
+game.companion.onJob=true;game.companion.jobType='Hacking nearby';game.companion.jobTimer=120;game.companion.jobReward=50+game.hackingLevel*50;game.companion.jobTimeReward=600;
+showDialogue('Rusty Hacking!','Rusty flew off to hack nearby systems! He will return in 2 minutes with crypto and time!');
+if(window.jarvisSpeak)jarvisSpeak('Rusty is hacking nearby systems!');
+addPhoneMessage('Rusty Dispatched','Rusty is hacking nearby systems');
+}
 
 // --- JARVIS Commands ---
 function registerJarvisCommands(){
@@ -495,37 +625,17 @@ jarvisRegisterCommand('summon any vehicle',function(){summonAnyVehicle();return'
 jarvisRegisterCommand('call time portal',function(){callTimePortal();return'Calling time portal'});
 jarvisRegisterCommand('show inventory',function(){showInventory();return'Showing inventory'});
 jarvisRegisterCommand('show wallet',function(){showWallet();return'Showing wallet and loans'});
+jarvisRegisterCommand('talk to rusty',function(){talkToCompanion();return'Talking to Rusty'});
+jarvisRegisterCommand('dispatch rusty',function(){dispatchCompanionJob();return'Dispatching Rusty on a job'});
+jarvisRegisterCommand('rusty courthouse',function(){dispatchCompanionCourthouse();return'Sending Rusty to the courthouse'});
+jarvisRegisterCommand('rusty sky city',function(){dispatchCompanionSkyCity();return'Sending Rusty to Sky City'});
+jarvisRegisterCommand('rusty hack',function(){dispatchCompanionHack();return'Sending Rusty to hack'});
+jarvisRegisterCommand('rusty status',function(){if(!game.companion)return'Rusty is not active';if(game.companion.onJob)return'Rusty is on a job: '+game.companion.jobType;return'Rusty is following you and ready for tasks'});
 }
 
 // --- Game Start ---
 function startGame(){
-document.getElementById('menuScreen').style.display='none';
-game.running=true;game.paused=false;
-initNPCs();initRobots();initVehicles();
-if(window.jarvisSetContext)jarvisSetContext({location:game.currentLocation,day:game.day,time:game.time});
-if(window.jarvisAddTask){
-jarvisAddTask('Explore Mega City','Walk around and discover districts','objective');
-jarvisAddTask('Visit Keyhouse','Explore the Lock & Key manor','objective');
-jarvisAddTask('Enroll in school','Go to high school or college to earn time','objective');
-jarvisAddTask('Earn Incentives Inc.','Work, gamble, or trade for INC crypto','objective');
-jarvisAddTask('Buy property','Own buildings for passive income','side');
-jarvisAddTask('Try hover vehicles','Visit the Hover Park for fast travel','side');
-jarvisAddTask('Survive a blackout','Avoid robots during blackouts (15 min). Portals can help!','challenge');
-jarvisAddTask('Hack the Central Brain','Break into the city computer (need hacking 3)','challenge');
-jarvisAddTask('Create a business','File at the courthouse','side');
-jarvisAddTask('Talk to NPCs','Meet the people of Mega City. Walk near them to auto-add contacts!','side');
-jarvisAddTask('Open your phone','Press P to access phone, contacts, messages, missions','side');
-jarvisAddTask('Try fast travel','Press F to fast travel or take the Hyperloop','side');
-jarvisAddTask('Create a key','Visit the Cave or Cliff Tunnel to forge magical keys','side');
-jarvisAddTask('Reach Sky City','Get 10,000 INC or 20 hours to buy Sky City access','challenge');
-jarvisAddTask('Summon Cloud Nybus','Unlock the flying cloud for fast travel','challenge');
-jarvisAddTask('Take futuristic electives','Robotics, Time Portal, Vehicle Creation, and more at school','side');
-jarvisAddTask('Take out a loan','Visit the Central Bank to borrow INC. Pay back to unlock higher loan tiers!','side');
-jarvisAddTask('Build your wallet','NPCs offer better jobs when your public wallet shows more INC','side');
-jarvisAddTask('Try mouse controls','Hold left click to steer, right click for game menu, use command bar at bottom','side');
-}
-registerJarvisCommands();
-loop();
+startIntro();
 }
 
 // Expose globals
@@ -585,6 +695,15 @@ window.handleRightClick=handleRightClick;
 window.closeContextMenu=closeContextMenu;
 window.openLeftActionMenu=openLeftActionMenu;
 window.setLeftAction=setLeftAction;
+window.startIntro=startIntro;
+window.wakeUp=wakeUp;
+window.initCompanion=initCompanion;
+window.updateCompanion=updateCompanion;
+window.talkToCompanion=talkToCompanion;
+window.dispatchCompanionJob=dispatchCompanionJob;
+window.dispatchCompanionCourthouse=dispatchCompanionCourthouse;
+window.dispatchCompanionSkyCity=dispatchCompanionSkyCity;
+window.dispatchCompanionHack=dispatchCompanionHack;
 </script>
 </body>
 </html>
