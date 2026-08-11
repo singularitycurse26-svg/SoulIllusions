@@ -442,7 +442,7 @@ function skyCityTimeCops(){if(game.time>100000){if(Math.random()<0.4){game.time-
 
 // --- Cloud Nybus (DBZ Flying Cloud) ---
 function summonCloudNybus(){
-if(!game.cloudNybusUnlocked){if(game.crypto>=CLOUD_NYBUS_COST){var c=prompt('Buy Cloud Nybus summon stone for '+CLOUD_NYBUS_COST+' INC? (y/n)');if(c==='y'||c==='Y'){game.crypto-=CLOUD_NYBUS_COST;game.cloudNybusUnlocked=true;showDialogue('Cloud Nybus Unlocked!','You can now summon the Cloud Nybus! Press C to summon/dismount.');if(window.jarvisSpeak)jarvisSpeak('Cloud Nybus unlocked!')}}else{showDialogue('Not enough INC','Need '+CLOUD_NYBUS_COST+' INC to unlock Cloud Nybus. Visit Sky City shop too.')}}return}
+if(!game.cloudNybusUnlocked){if(game.crypto>=CLOUD_NYBUS_COST){var c=prompt('Buy Cloud Nybus summon stone for '+CLOUD_NYBUS_COST+' INC? (y/n)');if(c==='y'||c==='Y'){game.crypto-=CLOUD_NYBUS_COST;game.cloudNybusUnlocked=true;showDialogue('Cloud Nybus Unlocked!','You can now summon the Cloud Nybus! Press C to summon/dismount.');if(window.jarvisSpeak)jarvisSpeak('Cloud Nybus unlocked!')}}else{showDialogue('Not enough INC','Need '+CLOUD_NYBUS_COST+' INC to unlock Cloud Nybus. Visit Sky City shop too.')}return}
 if(game.cloudNybus){game.cloudNybus=null;game.player.onCloud=false;showDialogue('Dismounted','You stepped off the Cloud Nybus. It floats away.');if(window.jarvisSpeak)jarvisSpeak('Dismounted Cloud Nybus')}else{game.cloudNybus={x:game.player.x,y:game.player.y-20};game.player.onCloud=true;showDialogue('Cloud Nybus!','You summoned the Cloud Nybus! Fly around the city! Press C to dismount.');if(window.jarvisSpeak)jarvisSpeak('Cloud Nybus summoned!')}
 }
 
