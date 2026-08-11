@@ -1239,6 +1239,12 @@ draw();
 
 
 # Template registry
+# Import Mega City template
+try:
+    from mega_city_template import MEGA_CITY_TEMPLATE as MEGA_CITY_TEMPLATE_IMP
+except ImportError:
+    MEGA_CITY_TEMPLATE_IMP = None
+
 TEMPLATES = {
     "platformer": PLATFORMER_TEMPLATE,
     "shooter": SHOOTER_TEMPLATE,
@@ -1247,6 +1253,8 @@ TEMPLATES = {
     "arcade": ARCADE_TEMPLATE,
     "lock_and_key": LOCK_AND_KEY_TEMPLATE,
 }
+if MEGA_CITY_TEMPLATE_IMP:
+    TEMPLATES["mega_city"] = MEGA_CITY_TEMPLATE_IMP
 
 
 # --- AI Game Generation ---

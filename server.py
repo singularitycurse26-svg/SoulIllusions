@@ -7045,6 +7045,24 @@ def api_create_lock_and_key():
         return JSONResponse({"error": str(e)}, status_code=500)
 
 
+@app.post("/api/games/create-mega-city")
+def api_create_mega_city():
+    """Create the Mega City open world game with JARVIS integration."""
+    try:
+        from text_to_games import get_game_manager
+        mgr = get_game_manager()
+        result = mgr.create_game(
+            prompt="Mega City - 60-mile open world with Keyhouse, schools, casinos, time currency, Incentives Inc. crypto, central computer brain, underground city, blackouts, robots, hover vehicles, property, courthouse",
+            genre="mega_city",
+            title="Mega City",
+            use_ai=False,
+            created_by="system"
+        )
+        return result
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+
 # === Main ===
 def open_browser():
     time.sleep(1.5)
