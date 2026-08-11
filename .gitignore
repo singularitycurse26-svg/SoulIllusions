@@ -19,3 +19,8 @@ kaggle_accounts.json
 book_library/audiobooks/
 book_library/exports/
 movie_analysis/
+build/
+dist/
+*.egg-info/
+soulillusions.egg-info/
+src/soulillusions.egg-info/
